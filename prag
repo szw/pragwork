@@ -2,8 +2,8 @@
 # encoding: utf-8
 # The MIT License
 
-# Pragwork 1.0
-# Prag Generator 1.0
+# Pragwork 1.0.1
+# Prag Generator 1.0.1
 # Author: Szymon Wrozynski
 # Copyright (c) 2009-2011 Szymon Wrozynski (http://wrozynski.com)
 # 
@@ -29,10 +29,11 @@ import os
 import sys
 import struct
 import re
+import shutil
 
-__prag_version__ = '1.0'
+__prag_version__ = '1.0.1'
 __author__ = 'Copyright (c) 2009-2011 Szymon Wrozynski'
-__pragwork_version__ = '1.0'
+__pragwork_version__ = '1.0.1'
 __license__ = 'Licensed under the MIT License'
 
 # Field class (for Model and Scaffolding) ####################################
@@ -6585,7 +6586,8 @@ function get_image_type($mime)
 ?>'''), STRIP_PHPDOC);
 
 def make_activerecord_module(work):
-    write(os.path.join(work, 'modules', 'activerecord.php'), R'''<?php
+    path = os.path.join(work, 'modules')
+    write(os.path.join(path, 'activerecord.php'), R'''<?php
 /**
  * ActiveRecord Module 1.0 for Pragwork %s
  *
@@ -6628,14 +6630,162 @@ THE SOFTWARE.
 */
 
 namespace ActiveRecord;
-use Closure;
-use PDO;
-use PDOException;
-use ReflectionClass;
-use XmlWriter;
-use ActiveRecord\Model;
-use IteratorAggregate;
-use ArrayIterator;
+/*
+ * Thanks to http://www.eval.ca/articles/php-pluralize (MIT license)
+ *  http://dev.rubyonrails.org/browser/trunk/activesupport/lib/active_support/inflections.rb (MIT license)
+ *           http://www.fortunecity.com/bally/durrus/153/gramch13.html
+ *           http://www2.gsu.edu/~wwwesl/egw/crump.htm
+ *
+ * Changes (12/17/07)
+ *   Major changes
+ *   --
+ *   Fixed irregular noun algorithm to use regular expressions just like the original Ruby source.
+ *       (this allows for things like fireman -> firemen
+ *   Fixed the order of the singular array, which was backwards.
+ *
+ *   Minor changes
+ *   --
+ *   Removed incorrect pluralization rule for /([^aeiouy]|qu)ies$/ => $1y
+ *   Expanded on the list of exceptions for *o -> *oes, and removed rule for buffalo -> buffaloes
+ *   Removed dangerous singularization rule for /([^f])ves$/ => $1fe
+ *   Added more specific rules for singularizing lives, wives, knives, sheaves, loaves, and leaves and thieves
+ *   Added exception to /(us)es$/ => $1 rule for houses => house and blouses => blouse
+ *   Added excpetions for feet, geese and teeth
+ *   Added rule for deer -> deer
+ *
+ * Changes:
+ *   Removed rule for virus -> viri
+ *   Added rule for potato -> potatoes
+ *   Added rule for *us -> *uses
+ */
+function classify($class_name, $singularize=false)
+{
+    if ($singularize)
+        $class_name = Utils::singularize($class_name);
+
+    $class_name = Inflector::instance()->camelize($class_name);
+    return ucfirst($class_name);
+}
+
+// http://snippets.dzone.com/posts/show/4660
+function array_flatten(array $array)
+{
+    $i = 0;
+
+    while ($i < count($array))
+    {
+        if (is_array($array[$i]))
+            array_splice($array,$i,1,$array[$i]);
+        else
+            ++$i;
+    }   
+    return $array;
+}
+
+/**
+ * Somewhat naive way to determine if an array is a hash.
+ */
+function is_hash(&$array)
+{
+    if (!is_array($array))
+	    return false;
+
+    $keys = array_keys($array);
+    return @is_string($keys[0]) ? true : false;
+}
+
+/**
+ * Strips a class name of any namespaces and namespace operator.
+ *
+ * @param string $class
+ * @return string stripped class name
+ * @access public
+ */
+function denamespace($class_name)
+{
+    if (is_object($class_name))
+	    $class_name = get_class($class_name);
+
+    if (has_namespace($class_name))
+    {
+	    $parts = explode('\\', $class_name);
+	    return end($parts);
+    }
+    return $class_name;
+}
+
+/**
+ * Adds the 'Models' namespace to the given class name if there is no namespace 
+ * yet.
+ *
+ * $param string $class_name
+ * return string Class name prepended with the 'Models' namespace
+ */
+function add_namespace($class_name)
+{
+    return (strpos($class_name, '\\') === false)
+        ? 'Models\\' . $class_name
+        : $class_name;
+}
+
+function get_namespaces($class_name)
+{
+    if (has_namespace($class_name))
+	    return explode('\\', $class_name);
+    return null;
+}
+
+function has_namespace($class_name)
+{
+    if (strpos($class_name, '\\') !== false)
+	    return true;
+    return false;
+}
+
+/**
+ * Returns true if all values in $haystack === $needle
+ * @param $needle
+ * @param $haystack
+ * @return unknown_type
+ */
+function all($needle, array $haystack)
+{
+    foreach ($haystack as $value)
+    {
+	    if ($value !== $needle)
+		    return false;
+    }
+    return true;
+}
+
+function collect(&$enumerable, $name_or_closure)
+{
+    $ret = array();
+
+    foreach ($enumerable as $value)
+    {
+	    if (is_string($name_or_closure))
+		    $ret[] = is_array($value) 
+		        ? $value[$name_or_closure] :  $value->$name_or_closure;
+	    elseif ($name_or_closure instanceof Closure)
+		    $ret[] = $name_or_closure($value);
+    }
+    return $ret;
+}
+
+function get_public_properties($obj)
+{
+    return get_object_vars($obj);
+}
+
+require CONFIG . 'activerecord.php';
+?>'''), STRIP_PHPDOC)
+    path = os.path.join(path, 'ActiveRecord')
+    
+    if os.path.isdir(path): shutil.rmtree(path)
+    os.mkdir(path)
+    write(os.path.join(path, 'CallBack.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 
 /**
  * Callbacks allow the programmer to hook into the life cycle of a {@link Model}.
@@ -6817,7 +6967,7 @@ class CallBack
 		{
 			foreach ($registry as $method)
 			{
-				$ret = ($method instanceof Closure ? $method($model) : $model->$method());
+				$ret = ($method instanceof \Closure ? $method($model) : $model->$method());
 
 				if (false === $ret && $first === 'before')
 					return false;
@@ -6851,7 +7001,7 @@ class CallBack
         if (!in_array($name,self::$VALID_CALLBACKS))
             throw new ActiveRecordException("Invalid callback: $name");
 
-        if (!($closure_or_method_name instanceof Closure))
+        if (!($closure_or_method_name instanceof \Closure))
         {
             if (!isset($this->publicMethods))
                 $this->publicMethods=get_class_methods($this->klass->getName());
@@ -6889,6 +7039,9 @@ class CallBack
             $this->registry[$name][] = $closure_or_method_name;
     }
 }
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Column.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 
 /**
  * Class for a table column.
@@ -7038,7 +7191,9 @@ class Column
 		return $this->type;
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Config.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Manages configuration options for ActiveRecord.
  *
@@ -7135,10 +7290,10 @@ class Config extends Singleton
   	 *   'mysql://username:password@localhost/database_name'));
 	 * </code>
 	 *
-	 * @param Closure $initializer A closure
+	 * @param \Closure $initializer A closure
 	 * @return void
 	 */
-	public static function initialize(Closure $initializer)
+	public static function initialize(\Closure $initializer)
 	{
 		$initializer(parent::instance());
 	}
@@ -7345,7 +7500,9 @@ class Config extends Singleton
         Cache::initialize($url,$options);
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Connection.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * The base class for database connection adapters.
  *
@@ -7354,7 +7511,7 @@ class Config extends Singleton
 abstract class Connection
 {
 	/**
-	 * The PDO connection object.
+	 * The \PDO connection object.
 	 * @var mixed
 	 */
 	public $connection;
@@ -7380,14 +7537,14 @@ abstract class Connection
 	private $logger;
 
 	/**
-	 * Default PDO options to set for each connection.
+	 * Default \PDO options to set for each connection.
 	 * @var array
 	 */
 	static $PDO_OPTIONS = array(
-		PDO::ATTR_CASE				=> PDO::CASE_LOWER,
-		PDO::ATTR_ERRMODE			=> PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_ORACLE_NULLS		=> PDO::NULL_NATURAL,
-		PDO::ATTR_STRINGIFY_FETCHES	=> false);
+		\PDO::ATTR_CASE				=> \PDO::CASE_LOWER,
+		\PDO::ATTR_ERRMODE			=> \PDO::ERRMODE_EXCEPTION,
+		\PDO::ATTR_ORACLE_NULLS		=> \PDO::NULL_NATURAL,
+		\PDO::ATTR_STRINGIFY_FETCHES	=> false);
 
 	/**
 	 * The quote character for stuff like column and field names.
@@ -7438,7 +7595,7 @@ abstract class Connection
 			$connection->logger = $connection->logging ? $config->get_logger() : null;
 			if (isset($info->charset))
                 $connection->set_encoding($info->charset);
-		} catch (PDOException $e) {
+		} catch (\PDOException $e) {
 			throw new DatabaseException($e);
 		}
 		return $connection;
@@ -7562,8 +7719,8 @@ abstract class Connection
 			else
 				$host = "unix_socket=$info->host";
 
-			$this->connection = new PDO("$info->protocol:$host;dbname=$info->db",$info->user,$info->pass,static::$PDO_OPTIONS);
-		} catch (PDOException $e) {
+			$this->connection = new \PDO("$info->protocol:$host;dbname=$info->db",$info->user,$info->pass,static::$PDO_OPTIONS);
+		} catch (\PDOException $e) {
 			throw new DatabaseException($e);
 		}
 	}
@@ -7626,16 +7783,16 @@ abstract class Connection
 		try {
 			if (!($sth = $this->connection->prepare($sql)))
 				throw new DatabaseException($this);
-		} catch (PDOException $e) {
+		} catch (\PDOException $e) {
 			throw new DatabaseException($this);
 		}
 
-		$sth->setFetchMode(PDO::FETCH_ASSOC);
+		$sth->setFetchMode(\PDO::FETCH_ASSOC);
 
 		try {
 			if (!$sth->execute($values))
 				throw new DatabaseException($this);
-		} catch (PDOException $e) {
+		} catch (\PDOException $e) {
 			throw new DatabaseException($sth);
 		}
 		return $sth;
@@ -7651,7 +7808,7 @@ abstract class Connection
 	public function query_and_fetch_one($sql, &$values=array())
 	{
 		$sth = $this->query($sql,$values);
-		$row = $sth->fetch(PDO::FETCH_NUM);
+		$row = $sth->fetch(\PDO::FETCH_NUM);
 		return $row[0];
 	}
 
@@ -7659,13 +7816,13 @@ abstract class Connection
 	 * Execute a raw SQL query and fetch the results.
 	 *
 	 * @param string $sql Raw SQL string to execute.
-	 * @param Closure $handler Closure that will be passed the fetched results.
+	 * @param \Closure $handler \Closure that will be passed the fetched results.
 	 */
-	public function query_and_fetch($sql, Closure $handler)
+	public function query_and_fetch($sql, \Closure $handler)
 	{
 		$sth = $this->query($sql);
 
-		while (($row = $sth->fetch(PDO::FETCH_ASSOC)))
+		while (($row = $sth->fetch(\PDO::FETCH_ASSOC)))
 			$handler($row);
 	}
 
@@ -7679,7 +7836,7 @@ abstract class Connection
 		$tables = array();
 		$sth = $this->query_for_tables();
 
-		while (($row = $sth->fetch(PDO::FETCH_NUM)))
+		while (($row = $sth->fetch(\PDO::FETCH_NUM)))
 			$tables[] = $row[0];
 
 		return $tables;
@@ -7804,7 +7961,7 @@ abstract class Connection
 	 * Query for column meta info and return statement handle.
 	 *
 	 * @param string $table Name of a table
-	 * @return PDOStatement
+	 * @return \PDOStatement
 	 */
 	abstract public function query_column_info($table);
 
@@ -7812,7 +7969,7 @@ abstract class Connection
 	 * Query for all tables in the current database. The result must only
 	 * contain one column which has the name of the table.
 	 *
-	 * @return PDOStatement
+	 * @return \PDOStatement
 	 */
 	abstract function query_for_tables();
 	
@@ -7832,7 +7989,9 @@ abstract class Connection
         return false; 
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'DateTime.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * An extension of PHP's DateTime class to provide dirty flagging and easier formatting options.
  *
@@ -7979,7 +8138,9 @@ class DateTime extends \DateTime
             func_get_args());
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ConnectionManager.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Singleton to manage any and all database connections.
  *
@@ -8015,7 +8176,7 @@ class ConnectionManager extends Singleton
 	
 	/**
      * Drops the connection from the connection manager. Does not actually close it since there
-     * is no close method in PDO.
+     * is no close method in \PDO.
      *
      * @param string $name Name of the connection to forget about
      */
@@ -8025,21 +8186,27 @@ class ConnectionManager extends Singleton
             unset(self::$connections[$name]);
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ActiveRecordException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Generic base exception for all ActiveRecord specific errors.
  *
  * @package ActiveRecord
  */
 class ActiveRecordException extends \Exception {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'RecordNotFound.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown when a record cannot be found.
  *
  * @package ActiveRecord
  */
 class RecordNotFound extends ActiveRecordException {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'DatabaseException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown when there was an error performing a database operation.
  *
@@ -8067,7 +8234,9 @@ class DatabaseException extends ActiveRecordException
 			parent::__construct($adapter_or_string_or_mystery);
 	}
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ModelException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown by {@link Model}.
  *
@@ -8081,14 +8250,18 @@ class ModelException extends ActiveRecordException {};
  * @package ActiveRecord
  */
 class ExpressionsException extends ActiveRecordException {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ConfigException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown for configuration problems.
  *
  * @package ActiveRecord
  */
 class ConfigException extends ActiveRecordException {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'UndefinedPropertyException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown when attempting to access an invalid property on a {@link Model}.
  *
@@ -8114,7 +8287,9 @@ class UndefinedPropertyException extends ModelException
 		parent::__construct();
 	}
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ReadOnlyException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown when attempting to perform a write operation on a {@link Model} that is in read-only mode.
  *
@@ -8135,28 +8310,36 @@ class ReadOnlyException extends ModelException
 		parent::__construct();
 	}
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ValidationsArgumentError.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown for validations exceptions.
  *
  * @package ActiveRecord
  */
 class ValidationsArgumentError extends ActiveRecordException {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'RelationshipException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown for relationship exceptions.
  *
  * @package ActiveRecord
  */
 class RelationshipException extends ActiveRecordException {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'HasManyThroughAssociationException.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Thrown for has many thru exceptions.
  *
  * @package ActiveRecord
  */
 class HasManyThroughAssociationException extends RelationshipException {};
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Expressions.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Templating like class for building SQL statements.
  *
@@ -8333,7 +8516,9 @@ class Expressions
 		return "'" . str_replace("'","''",$value) . "'";
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Inflector.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * @package ActiveRecord
  */
@@ -8440,7 +8625,9 @@ abstract class Inflector
 
 	abstract function variablize($s);
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'StandardInflector.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * @package ActiveRecord
  */
@@ -8460,7 +8647,9 @@ class StandardInflector extends Inflector
 	    );     
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Model.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * The base class for your models.
  *
@@ -10096,7 +10285,7 @@ class Model
      *
      * @param string $sql SQL to execute
      * @param array $values Bind values, if any, for the query
-     * @return object A PDOStatement object
+     * @return object A \PDOStatement object
      */
     public static function query($sql, $values=null)
     {
@@ -10302,7 +10491,7 @@ class Model
 	 * });
 	 * </code>
 	 *
-	 * @param Closure $closure The closure to execute. To cause a rollback have your closure return false or throw an exception.
+	 * @param \Closure $closure The closure to execute. To cause a rollback have your closure return false or throw an exception.
      * @return boolean True if the transaction was committed, False if rolled back.
 	 */
 	public static function transaction($closure)
@@ -10329,7 +10518,9 @@ class Model
 		return true;
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Reflections.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Simple class that caches reflections of classes.
  *
@@ -10345,7 +10536,7 @@ class Reflections extends Singleton
 	private $reflections = array();
 
 	/**
-	 * Instantiates a new ReflectionClass for the given class.
+	 * Instantiates a new \ReflectionClass for the given class.
 	 *
 	 * @param string $class Name of a class
 	 * @return Reflections $this so you can chain calls like Reflections::instance()->add('class')->get()
@@ -10363,7 +10554,7 @@ class Reflections extends Singleton
                     self::normalize_associations($class::$$assoc_name);
             }
             
-			$this->reflections[$class] = new ReflectionClass($class);
+			$this->reflections[$class] = new \ReflectionClass($class);
 		}
 			
 		return $this;
@@ -10397,7 +10588,7 @@ class Reflections extends Singleton
     }
 
 	/**
-	 * Destroys the cached ReflectionClass.
+	 * Destroys the cached \ReflectionClass.
 	 *
 	 * Put this here mainly for testing purposes.
 	 * 
@@ -10411,10 +10602,10 @@ class Reflections extends Singleton
 	}
 	
 	/**
-	 * Get a cached ReflectionClass.
+	 * Get a cached \ReflectionClass.
 	 *
 	 * @param string $class Optional name of a class
-	 * @return mixed null or a ReflectionClass instance
+	 * @return mixed null or a \ReflectionClass instance
 	 * @throws ActiveRecordException if class was not found
 	 */
 	public function get($class=null)
@@ -10444,7 +10635,9 @@ class Reflections extends Singleton
 		return $this->get_called_class();
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'InterfaceRelationship.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Interface for a table relationship.
  *
@@ -10456,7 +10649,9 @@ interface InterfaceRelationship
 	public function build_association(Model $model, $attributes=array());
 	public function create_association(Model $model, $attributes=array());
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'AbstractRelationship.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Abstract class that all relationships must extend from.
  *
@@ -10795,7 +10990,9 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	 */
 	abstract function load(Model $model);
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'HasMany.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * One-to-many relationship.
  *
@@ -10974,7 +11171,9 @@ class HasMany extends AbstractRelationship
 		$this->set_class_name(classify($this->attribute_name, true));
 	}
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'HasOne.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * One-to-one relationship.
  *
@@ -10996,7 +11195,9 @@ class HasMany extends AbstractRelationship
 class HasOne extends HasMany
 {
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'HasAndBelongsToMany.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * @todo implement me
  * @package ActiveRecord
@@ -11020,7 +11221,9 @@ class HasAndBelongsToMany extends AbstractRelationship
 
 	}
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'BelongsTo.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Belongs to relationship.
  *
@@ -11089,7 +11292,9 @@ class BelongsTo extends AbstractRelationship
 		$this->query_and_attach_related_models_eagerly($table,$models,$attributes,$includes, $this->primary_key,$this->foreign_key);
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Serialization.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Base class for Model serializers.
  *
@@ -11323,7 +11528,9 @@ abstract class Serialization
 	 */
 	abstract public function to_s();
 };
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'ArraySerializer.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Array serializer.
  *
@@ -11340,7 +11547,9 @@ class ArraySerializer extends Serialization
             : $this->to_a();
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'JsonSerializer.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * JSON serializer.
  *
@@ -11356,7 +11565,9 @@ class JsonSerializer extends ArraySerializer
         return json_encode(parent::to_s());
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'XmlSerializer.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * XML serializer.
  *
@@ -11379,7 +11590,7 @@ class XmlSerializer extends Serialization
 
 	private function xml_encode()
 	{
-		$this->writer = new XmlWriter();
+		$this->writer = new \XmlWriter();
 		$this->writer->openMemory();
 		$this->writer->startDocument('1.0', 'UTF-8');
 		$this->writer->startElement(strtolower(denamespace(($this->model))));
@@ -11419,7 +11630,9 @@ class XmlSerializer extends Serialization
 		}
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'CsvSerializer.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * CSV serializer.
  *
@@ -11456,7 +11669,9 @@ class CsvSerializer extends Serialization
         return $buffer;
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Singleton.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * This implementation of the singleton pattern does not conform to the strong definition
  * given by the "Gang of Four." The __construct() method has not be privatized so that
@@ -11507,7 +11722,9 @@ abstract class Singleton
     	return get_class($backtrace[2]['object']);
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'SQLBuilder.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Helper class for building sql statements progmatically.
  *
@@ -11926,7 +12143,9 @@ class SQLBuilder
 		return $keys;
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Table.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Manages reading and writing to a database table.
  *
@@ -12482,155 +12701,9 @@ class Table
 		}
 	}
 }
-
-/*
- * Thanks to http://www.eval.ca/articles/php-pluralize (MIT license)
- *           http://dev.rubyonrails.org/browser/trunk/activesupport/lib/active_support/inflections.rb (MIT license)
- *           http://www.fortunecity.com/bally/durrus/153/gramch13.html
- *           http://www2.gsu.edu/~wwwesl/egw/crump.htm
- *
- * Changes (12/17/07)
- *   Major changes
- *   --
- *   Fixed irregular noun algorithm to use regular expressions just like the original Ruby source.
- *       (this allows for things like fireman -> firemen
- *   Fixed the order of the singular array, which was backwards.
- *
- *   Minor changes
- *   --
- *   Removed incorrect pluralization rule for /([^aeiouy]|qu)ies$/ => $1y
- *   Expanded on the list of exceptions for *o -> *oes, and removed rule for buffalo -> buffaloes
- *   Removed dangerous singularization rule for /([^f])ves$/ => $1fe
- *   Added more specific rules for singularizing lives, wives, knives, sheaves, loaves, and leaves and thieves
- *   Added exception to /(us)es$/ => $1 rule for houses => house and blouses => blouse
- *   Added excpetions for feet, geese and teeth
- *   Added rule for deer -> deer
- *
- * Changes:
- *   Removed rule for virus -> viri
- *   Added rule for potato -> potatoes
- *   Added rule for *us -> *uses
- */
-
-function classify($class_name, $singularize=false)
-{
-	if ($singularize)
-	    $class_name = Utils::singularize($class_name);
-
-	$class_name = Inflector::instance()->camelize($class_name);
-	return ucfirst($class_name);
-}
-
-// http://snippets.dzone.com/posts/show/4660
-function array_flatten(array $array)
-{
-    $i = 0;
-
-    while ($i < count($array))
-    {
-        if (is_array($array[$i]))
-            array_splice($array,$i,1,$array[$i]);
-        else
-            ++$i;
-    }
-    return $array;
-}
-
-/**
- * Somewhat naive way to determine if an array is a hash.
- */
-function is_hash(&$array)
-{
-	if (!is_array($array))
-		return false;
-
-	$keys = array_keys($array);
-	return @is_string($keys[0]) ? true : false;
-}
-
-/**
- * Strips a class name of any namespaces and namespace operator.
- *
- * @param string $class
- * @return string stripped class name
- * @access public
- */
-function denamespace($class_name)
-{
-	if (is_object($class_name))
-		$class_name = get_class($class_name);
-
-	if (has_namespace($class_name))
-	{
-		$parts = explode('\\', $class_name);
-		return end($parts);
-	}
-	return $class_name;
-}
-
-/**
- * Adds the 'Models' namespace to the given class name if there is no namespace 
- * yet.
- *
- * $param string $class_name
- * return string Class name prepended with the 'Models' namespace
- */
-function add_namespace($class_name)
-{
-    return (strpos($class_name, '\\') === false)
-        ? 'Models\\' . $class_name
-        : $class_name;
-}
-
-function get_namespaces($class_name)
-{
-	if (has_namespace($class_name))
-		return explode('\\', $class_name);
-	return null;
-}
-
-function has_namespace($class_name)
-{
-	if (strpos($class_name, '\\') !== false)
-		return true;
-	return false;
-}
-
-/**
- * Returns true if all values in $haystack === $needle
- * @param $needle
- * @param $haystack
- * @return unknown_type
- */
-function all($needle, array $haystack)
-{
-	foreach ($haystack as $value)
-	{
-		if ($value !== $needle)
-			return false;
-	}
-	return true;
-}
-
-function collect(&$enumerable, $name_or_closure)
-{
-	$ret = array();
-
-	foreach ($enumerable as $value)
-	{
-		if (is_string($name_or_closure))
-			$ret[] = is_array($value) ? $value[$name_or_closure] : $value->$name_or_closure;
-		elseif ($name_or_closure instanceof Closure)
-			$ret[] = $name_or_closure($value);
-	}
-	return $ret;
-}
-
-function get_public_properties($obj)
-{
-    return get_object_vars($obj);
-}
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Utils.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Some internal utility functions.
  *
@@ -12824,7 +12897,9 @@ class Utils
 		return preg_replace("/$char+/",$char,$string);
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Memcache.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 class Memcache
 {
     private $memcache;
@@ -12852,7 +12927,9 @@ class Memcache
         $this->memcache->set($key,$value,null,$expire);
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Cache.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Cache::get('the-cache-key', function() {
  * # this gets executed when cache is stale
@@ -12903,7 +12980,9 @@ class Cache
         return $value;
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Validations.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Manages validations for a {@link Model}.
  *
@@ -13543,13 +13622,15 @@ class Validations
 		return (Utils::is_blank($var) && (isset($options['allow_blank']) && $options['allow_blank']));
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Errors.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Class that holds {@link Validations} errors.
  *
  * @package ActiveRecord
  */
-class Errors implements IteratorAggregate
+class Errors implements \IteratorAggregate
 {
 	private $model;
 	private $errors;
@@ -13846,14 +13927,16 @@ class Errors implements IteratorAggregate
 	 *   echo "$msg\n";
 	 * </code>
 	 *
-	 * @return ArrayIterator
+	 * @return \ArrayIterator
 	 */
 	public function getIterator()
 	{
-		return new ArrayIterator($this->full_messages());
+		return new \ArrayIterator($this->full_messages());
 	}
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'MysqlAdapter.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 class MysqlAdapter extends Connection
 {
 	static $DEFAULT_PORT = 3306;
@@ -13926,7 +14009,9 @@ class MysqlAdapter extends Connection
         return true; 
     }
 }
-	
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'TablelessModel.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 class TablelessModel
 {
 	public $errors;
@@ -14033,7 +14118,9 @@ class TablelessModel
         throw new UndefinedPropertyException(get_called_class(), $name);
     }
 }
-    
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'OciAdapter.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Adapter for OCI (not completed yet).
  * 
@@ -14051,11 +14138,11 @@ class OciAdapter extends Connection
 		    $this->dsn_params = isset($info->charset) 
 		        ? ";charset=$info->charset" : "";
 			$this->connection = 
-			    new PDO("oci:dbname=//$info->host/$info->db$this->dsn_params",
+			    new \PDO("oci:dbname=//$info->host/$info->db$this->dsn_params",
 			        $info->user,$info->pass,static::$PDO_OPTIONS
 			    );
 		} 
-		catch (PDOException $e) 
+		catch (\PDOException $e) 
 		{
 			throw new DatabaseException($e);
 		}
@@ -14158,7 +14245,9 @@ class OciAdapter extends Connection
         // is handled in the constructor
     }
 }
-    
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'Postgres.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Adapter for Postgres (not completed yet)
  * 
@@ -14261,7 +14350,9 @@ SQL;
         $this->query("SET NAMES '$charset'");
     }
 }
-
+?>'''), STRIP_PHPDOC)
+    write(os.path.join(path, 'SqliteAdapter.php'), __strip_phpdoc(R'''<?php
+namespace ActiveRecord;
 /**
  * Adapter for SQLite.
  *
@@ -14274,7 +14365,7 @@ class SqliteAdapter extends Connection
 		if (!file_exists($info->host))
 			throw new DatabaseException("Could not find sqlite db: $info->host");
 
-		$this->connection = new PDO("sqlite:$info->host",null,null,static::$PDO_OPTIONS);
+		$this->connection = new \PDO("sqlite:$info->host",null,null,static::$PDO_OPTIONS);
 	}
 
 	public function limit($sql, $offset, $limit)
@@ -14346,8 +14437,6 @@ class SqliteAdapter extends Connection
         return true; 
     }
 }
-
-require CONFIG . 'activerecord.php';
 ?>'''), STRIP_PHPDOC)
 
 def make_lightopenid_module(work):
@@ -20497,10 +20586,14 @@ namespace
     define('TEMP', APPLICATION_PATH . DIRECTORY_SEPARATOR . 'temp' 
         . DIRECTORY_SEPARATOR);
     
-    /**
-     * Internal class autoloader. The provided class name should not be started
-     * with a backslash <b>\</b> character. Notice, that PHP strips the leading
-     * backslashes automatically even if you provide it in the code:
+    /*
+     * Adds the internal class loader to the class loaders chain. 
+     * First, the class loader searches classes in the '/app' directory, then 
+     * in the '/modules' one. 
+     *
+     * The provided class name should not start with a backslash <b>\</b>
+     * character. Notice, that PHP strips the leading backslashes automatically
+     * even if you provide it in the code:
      * 
      * <code>
      * $bar = new \Foo\Bar;
@@ -20520,15 +20613,17 @@ namespace
      * </code>
      *
      * Remember, namespaces in strings are always regarded as absolute ones.
-     *
-     * @param $class Class name
-     * @internal This function should not be used explicitly! Internal use only.
      */
-    function __autoload($class)
+    spl_autoload_register(function($class)
     {
-        require APP . str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
-    }
-
+        $class = str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
+        
+        if (is_file(APP . $class))
+            require APP . $class;
+        elseif (is_file(MODULES . $class))
+            require MODULES . $class;
+    });
+    
     /**
      * Internal error handler.
      *
@@ -20972,8 +21067,9 @@ namespace
 }
 ?>'''), STRIP_PHPDOC)
 
-def make_tags_module(work):    
-    write(os.path.join(work, 'modules', 'tags.php'), R'''<?php
+def make_tags_module(work):
+    path = os.path.join(work, 'modules')
+    write(os.path.join(path, 'tags.php'), R'''<?php
 /**
  * Tags Module 1.0 for Pragwork %s
  *
@@ -21538,603 +21634,608 @@ namespace Tags
             ? url_for($static . '/' . $asset)
             : $static . '/' . $asset;
     }
+}
+?>'''), STRIP_PHPDOC)
+    path = os.path.join(path, 'Tags')
+    if os.path.isdir(path): shutil.rmtree(path)
+    os.mkdir(path)
+    write(os.path.join(path, 'Form.php'), __strip_phpdoc(R'''<?php
+namespace Tags;
+/**
+ * The helper class used inside the form body building closure of the 
+ * {@link form_for} function. It serves as a container of functions creating
+ * fields of the form as well as a wrapper of the attached model. All public 
+ * properties of the model are available as properties of the form class.
+ * Also, all form methods are aware of corresponding model values. 
+ *
+ * @see form_for
+ * @author Szymon Wrozynski
+ */
+final class Form
+{
+    private $_model;
     
     /**
-     * The helper class used inside the form body building closure of the 
-     * {@link form_for} function. It serves as a container of functions creating
-     * fields of the form as well as a wrapper of the attached model. All public 
-     * properties of the model are available as properties of the form class.
-     * Also, all form methods are aware of corresponding model values. 
+     * The default constructor. The model might be an object, an array, or a 
+     * null. If the array is passed it is automatically cast to an object.
      *
-     * @see form_for
-     * @author Szymon Wrozynski
+     * @param mixed $model Model passed to the {@link form_for} function
      */
-    final class Form
+    public function __construct($model=null)
     {
-        private $_model;
+        if ($model)
+            $this->_model = ((array) $model === $model)
+                ? (object) $model
+                : $model;
+    }
         
-        /**
-         * The default constructor. The model might be an object, an array, or a 
-         * null. If the array is passed it is automatically cast to an object.
-         *
-         * @param mixed $model Model passed to the {@link form_for} function
-         */
-        public function __construct($model=null)
-        {
-            if ($model)
-                $this->_model = ((array) $model === $model)
-                    ? (object) $model
-                    : $model;
-        }
-        
-        /**
-    	 * Sets a model property (if a model has been attached).
-    	 *
-    	 * @param string $name Name of the property
-    	 * @param mixed $value Property value
-    	 */
-    	public function __set($name, $value)
-    	{
-    	    if ($this->_model)
-    	        $this->_model->$name = $value;
-    	}
-
-    	/**
-    	 * Gets a model property (if a model has been attached).
-    	 *
-    	 * @param string $name Name of the property
-    	 * @return mixed Model property or null
-    	 */
-    	public function __get($name)
-    	{
-            return ($this->_model) ? $this->_model->$name : null;
-    	}
+    /**
+	 * Sets a model property (if a model has been attached).
+	 *
+	 * @param string $name Name of the property
+	 * @param mixed $value Property value
+	 */
+	public function __set($name, $value)
+	{
+	    if ($this->_model)
+	        $this->_model->$name = $value;
+	}
+	
+	/**
+	 * Gets a model property (if a model has been attached).
+	 *
+     * @param string $name Name of the property
+     * @return mixed Model property or null
+     */
+    public function __get($name)
+    {
+        return ($this->_model) ? $this->_model->$name : null;
+    }
     	
-    	/**
-    	 * Returns a model reference.
-    	 *
-    	 * @return mixed Reference to the attached model (or null)
-    	 */
-    	public function &model()
-    	{
-    	    return $this->_model;
-    	}
-        
-        /**
-         * Returns <b>true</b> if there are any error messages in the model
-         * for the specified field or for all fields (if none given).
-         *
-         * @param mixed $name Field name or e.g. null for all fields
-         * @return bool True if there are error messages or false otherwise
-         */
-        public function is_error($name=null)
-        {
-            return $name 
-                ? $this->_model && $this->_model->errors 
-                    && $this->_model->errors->$name
-                : $this->_model && $this->_model->errors 
-                    && !$this->_model->errors->is_empty();
-        }
+    /**
+	 * Returns a model reference.
+	 *
+	 * @return mixed Reference to the attached model (or null)
+	 */
+	public function &model()
+	{
+	    return $this->_model;
+	}
+    
+    /**
+     * Returns <b>true</b> if there are any error messages in the model
+     * for the specified field or for all fields (if none given).
+     *
+     * @param mixed $name Field name or e.g. null for all fields
+     * @return bool True if there are error messages or false otherwise
+     */
+    public function is_error($name=null)
+    {
+        return $name 
+            ? $this->_model && $this->_model->errors 
+                && $this->_model->errors->$name
+            : $this->_model && $this->_model->errors 
+                && !$this->_model->errors->is_empty();
+    }
 
-        /**
-         * Returns error messages after the form validation for the given 
-         * field name or for all fields if no name was passed. If there are no
-         * errors the null is returned. It works with ActiveRecord validation
-         * engine and expects ActiveRecords\Errors object to be present in the
-         * model.
-         *
-         * The following options are available:
-         *
-         * <ul>
-         * <li><b>separator</b>: separator between a displayed name
-         *     and a message. If empty, the field names in the constructed
-         *     messages are omitted. Otherwise field names optionally translated
-         *     are used.  Default: ' '</li>
-         * <li><b>wrap_in</b>: name of the enclosing tag</li>
-         * <li><b>localize</b>: <b>true</b>/<b>false</b> to explicitly turn 
-         *     on/off localization</li>
-         * </ul>
-         *
-         * If the 'wrap_in' is not present then error messages are separated
-         * with a dot. If localization is turned on, the message and name are
-         * translated separately.
-         *
-         * All other options are appended to the enclosing tag as attributes.
-         *
-         * @param mixed $name Field name or e.g. null for all fields
-         * @param array $options Formatting options
-         * @return string Error messages or HTML tag(s)
-         */
-        public function error_messages($name, $options=array())
+    /**
+     * Returns error messages after the form validation for the given 
+     * field name or for all fields if no name was passed. If there are no
+     * errors the null is returned. It works with ActiveRecord validation
+     * engine and expects ActiveRecords\Errors object to be present in the
+     * model.
+     *
+     * The following options are available:
+     *
+     * <ul>
+     * <li><b>separator</b>: separator between a displayed name
+     *     and a message. If empty, the field names in the constructed
+     *     messages are omitted. Otherwise field names optionally translated
+     *     are used.  Default: ' '</li>
+     * <li><b>wrap_in</b>: name of the enclosing tag</li>
+     * <li><b>localize</b>: <b>true</b>/<b>false</b> to explicitly turn 
+     *     on/off localization</li>
+     * </ul>
+     *
+     * If the 'wrap_in' is not present then error messages are separated
+     * with a dot. If localization is turned on, the message and name are
+     * translated separately.
+     *
+     * All other options are appended to the enclosing tag as attributes.
+     *
+     * @param mixed $name Field name or e.g. null for all fields
+     * @param array $options Formatting options
+     * @return string Error messages or HTML tag(s)
+     */
+    public function error_messages($name, $options=array())
+    {
+        if ($this->_model && $this->_model->errors)
         {
-            if ($this->_model && $this->_model->errors)
+            $localize = isset($options['localize'])
+                ? $options['localize'] : (LOCALIZATION !== false);
+            
+            $separator = isset($options['separator'])
+                ? $options['separator'] : ' ';
+            
+            if ($name)
             {
-                $localize = isset($options['localize'])
-                    ? $options['localize'] : (LOCALIZATION !== false);
-                
-                $separator = isset($options['separator'])
-                    ? $options['separator'] : ' ';
-                
-                if ($name)
-                {
-                    $error_messages = $this->_model->errors->$name;
-                
-                    if (!$error_messages)
-                        return;
-                                
-                    if ($separator)
-                        $name = $localize 
-                            ? t($name) : ucfirst(str_replace('_', ' ', $name));
-                    else
-                        $name = '';
-                    
-                    foreach ($error_messages as &$em)
-                        $em = $name . $separator . ($localize ? t($em) : $em);
-                }
+                $error_messages = $this->_model->errors->$name;
+            
+                if (!$error_messages)
+                    return;
+                            
+                if ($separator)
+                    $name = $localize 
+                        ? t($name) : ucfirst(str_replace('_', ' ', $name));
                 else
-                    $error_messages = $this->_model->errors->full_messages(
-                        $separator, $localize);
+                    $name = '';
                 
-                if (isset($options['wrap_in']))
-                {
-                    $tag_opening = '<' . $options['wrap_in'];
-                    $tag_close = '</' . $options['wrap_in'] . '>'; 
-                    
-                    unset(
-                        $options['wrap_in'], 
-                        $options['localize'], 
-                        $options['separator']
-                    );
-                    
-                    foreach ($options as $n => $v) 
-                        $tag_opening .= ' ' . $n . '="' . $v . '"';
-                    
-                    $tag_opening .= '>';
-                    
-                    $html = '';
-                    
-                    foreach ($error_messages as $msg)
-                        $html .= $tag_opening . $msg . $tag_close;
-                    
-                    return $html;
-                }
-                else
-                    return implode('. ', $error_messages);
-            }
-        }
-        
-        /**
-         * Creates the <label> tag for the given field name. It uses
-         * localization or simple name humanization if no value supplied.
-         * 
-         * @param string $name Field name
-         * @param string $value Label value
-         * @param array $options Formatting options
-         * @return string <label> HTML tag
-         */
-        public function label($name, $value=null, $options=array())
-        {
-            $html = '<label';
-            
-            if ($value === null) 
-                $value = (LOCALIZATION !== false)
-                    ? t($name) : ucfirst(str_replace('_', ' ', $name));
-            
-            if (!isset($options['for']))
-                $html .= ' for="' . $name . '-field"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . '>' . $value . '</label>';
-        }
-
-        /**
-         * Creates the <select> tag for the given field name. 
-         * The passed $collection is an array of possible select values. 
-         * The array may contain objects and/or key-value pairs, or just 
-         * strings (strings will be used both as keys and values). 
-         * For objects it is possible to set property names for the option text
-         * and value or even more specified closures.
-         *
-         * Formatting options:
-         *
-         * <ul>
-         * <li><b>option_text</b>: property name or a closure</li>
-         * <li><b>option_value</b>: property name or a closure</li>
-         * <li><b>selected</b>: closure comparing the current value and the
-         *     model</li>
-         * <li><b>blank</b>: special blank option value</li>
-         * </ul> 
-         *
-         * The <b>option_text</b> and <b>option_value</b> might be property
-         * names or anonymous functions which transform an object from 
-         * the $collection into the option text or value:
-         *
-         * <code>
-         * $f->select('person', $this->persons, array('option_text' =>
-         *     function($p) { return $p->first_name . ' ' . $p->last_name; }));
-         * </code>
-         *
-         * The default value for <b>option_text</b> is 'name' and for 
-         * <b>option_value</b> - 'id'.
-         *
-         * The <b>selected</b> could be a closure of form: 
-         * <code> 
-         * bool function($model, $value)
-         * </code>
-         *
-         * The default closure used looks similarily to this one: 
-         *
-         * <code>
-         * function($model, $value) use ($name) 
-         * {
-         *     return $model && $model->$name == $value;
-         * }
-         * </code>
-         *  
-         * The <b>blank</b> option could be: 
-         * 
-         * <code>
-         * $f->select('opt', $this->options, array('blank' => array(
-         *     'Please choose a value' => 0
-         * )));
-         * </code>
-         *
-         * Other options are appended as the <select> tag attributes.
-         *
-         * @param string $name Field name
-         * @param string $collection Possible selectable options
-         * @param array $options Formatting options
-         * @return string <select> HTML tag
-         */
-        public function select($name, $collection, $options=array())
-        {
-            $html = '<select name="' . $name . '"';
-            
-            if (!isset($options['id'])) 
-                $html . ' id="' . $name . '-field"';
-            
-            if (isset($options['option_text'])) 
-            {
-                $option_text = $options['option_text'];
-                unset($options['option_text']);
-            } 
-            else 
-                $option_text = 'name';
-            
-            if (isset($options['option_value'])) 
-            {
-                $option_value = $options['option_value'];
-                unset($options['option_value']);
-            }
-            else 
-                $option_value = 'id';
-                
-            if (isset($options['selected']))
-            {
-                $selected_closure = $options['selected'];
-                unset($options['selected']);
+                foreach ($error_messages as &$em)
+                    $em = $name . $separator . ($localize ? t($em) : $em);
             }
             else
+                $error_messages = $this->_model->errors->full_messages(
+                    $separator, $localize);
+            
+            if (isset($options['wrap_in']))
             {
-                $selected_closure = function($model, $value) use ($name) 
-                {
-                    return $model && $model->$name == $value;
-                };
+                $tag_opening = '<' . $options['wrap_in'];
+                $tag_close = '</' . $options['wrap_in'] . '>'; 
+                
+                unset(
+                    $options['wrap_in'], 
+                    $options['localize'], 
+                    $options['separator']
+                );
+                
+                foreach ($options as $n => $v) 
+                    $tag_opening .= ' ' . $n . '="' . $v . '"';
+                
+                $tag_opening .= '>';
+                
+                $html = '';
+                
+                foreach ($error_messages as $msg)
+                    $html .= $tag_opening . $msg . $tag_close;
+                
+                return $html;
             }
-            
-            if (isset($options['blank']))
-            {
-                if ((array) $options['blank'] === $options['blank'])
-                    $collection = array_merge($options['blank'], $collection);
-                else
-                    array_unshift($collection, $options['blank']);
-                
-                unset($options['blank']);
-            }
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            $html .= '>';
-            
-            foreach ($collection as $n => $v) 
-            {
-                if ((object) $v === $v)
-                {
-                    $n = ((string) $option_text === $option_text)
-                        ? $v->$option_text : $option_text($v);
-                    $v = ((string) $option_value === $option_value)
-                        ? $v->$option_value : $option_value($v);
-                }
-                elseif ((int) $n === $n)
-                    $n = $v;
-                
-                $html .= '<option value="' . $v . '"';
-                
-                if ($selected_closure($this->_model, $v))
-                    $html .= ' selected="selected"';
-                
-                $html .= '>' . $n . '</option>';
-            }
-            
-            return $html . '</select>';
+            else
+                return implode('. ', $error_messages);
         }
+    }
+    
+    /**
+     * Creates the <label> tag for the given field name. It uses
+     * localization or simple name humanization if no value supplied.
+     * 
+     * @param string $name Field name
+     * @param string $value Label value
+     * @param array $options Formatting options
+     * @return string <label> HTML tag
+     */
+    public function label($name, $value=null, $options=array())
+    {
+        $html = '<label';
+        
+        if ($value === null) 
+            $value = (LOCALIZATION !== false)
+                ? t($name) : ucfirst(str_replace('_', ' ', $name));
+        
+        if (!isset($options['for']))
+            $html .= ' for="' . $name . '-field"';
+        
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
+        
+        return $html . '>' . $value . '</label>';
+    }
 
-        private function checked_input($name, $options) 
+    /**
+     * Creates the <select> tag for the given field name. 
+     * The passed $collection is an array of possible select values. 
+     * The array may contain objects and/or key-value pairs, or just 
+     * strings (strings will be used both as keys and values). 
+     * For objects it is possible to set property names for the option text
+     * and value or even more specified closures.
+     *
+     * Formatting options:
+     *
+     * <ul>
+     * <li><b>option_text</b>: property name or a closure</li>
+     * <li><b>option_value</b>: property name or a closure</li>
+     * <li><b>selected</b>: closure comparing the current value and the
+     *     model</li>
+     * <li><b>blank</b>: special blank option value</li>
+     * </ul> 
+     *
+     * The <b>option_text</b> and <b>option_value</b> might be property
+     * names or anonymous functions which transform an object from 
+     * the $collection into the option text or value:
+     *
+     * <code>
+     * $f->select('person', $this->persons, array('option_text' =>
+     *     function($p) { return $p->first_name . ' ' . $p->last_name; }));
+     * </code>
+     *
+     * The default value for <b>option_text</b> is 'name' and for 
+     * <b>option_value</b> - 'id'.
+     *
+     * The <b>selected</b> could be a closure of form: 
+     * <code> 
+     * bool function($model, $value)
+     * </code>
+     *
+     * The default closure used looks similarily to this one: 
+     *
+     * <code>
+     * function($model, $value) use ($name) 
+     * {
+     *     return $model && $model->$name == $value;
+     * }
+     * </code>
+     *  
+     * The <b>blank</b> option could be: 
+     * 
+     * <code>
+     * $f->select('opt', $this->options, array('blank' => array(
+     *     'Please choose a value' => 0
+     * )));
+     * </code>
+     *
+     * Other options are appended as the <select> tag attributes.
+     *
+     * @param string $name Field name
+     * @param string $collection Possible selectable options
+     * @param array $options Formatting options
+     * @return string <select> HTML tag
+     */
+    public function select($name, $collection, $options=array())
+    {
+        $html = '<select name="' . $name . '"';
+        
+        if (!isset($options['id'])) 
+            $html . ' id="' . $name . '-field"';
+        
+        if (isset($options['option_text'])) 
         {
-            $html = '<input name="' . $name . '"';
+            $option_text = $options['option_text'];
+            unset($options['option_text']);
+        } 
+        else 
+            $option_text = 'name';
+        
+        if (isset($options['option_value'])) 
+        {
+            $option_value = $options['option_value'];
+            unset($options['option_value']);
+        }
+        else 
+            $option_value = 'id';
             
-            if (!isset($options['id']))
-                $html .= ' id="' . $name . '-field"';
-            
-            if (!isset($options['value'])) 
-                $options['value'] = 1;
-            
-            if (isset($options['checked'])) 
+        if (isset($options['selected']))
+        {
+            $selected_closure = $options['selected'];
+            unset($options['selected']);
+        }
+        else
+        {
+            $selected_closure = function($model, $value) use ($name) 
             {
-                if ($options['checked'])
-                    $html .= ' checked="checked"';
-                
-                unset($options['checked']);
-            } 
-            elseif ($this->_model && ($this->_model->$name ==$options['value']))
+                return $model && $model->$name == $value;
+            };
+        }
+        
+        if (isset($options['blank']))
+        {
+            if ((array) $options['blank'] === $options['blank'])
+                $collection = array_merge($options['blank'], $collection);
+            else
+                array_unshift($collection, $options['blank']);
+            
+            unset($options['blank']);
+        }
+        
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
+        
+        $html .= '>';
+        
+        foreach ($collection as $n => $v) 
+        {
+            if ((object) $v === $v)
+            {
+                $n = ((string) $option_text === $option_text)
+                    ? $v->$option_text : $option_text($v);
+                $v = ((string) $option_value === $option_value)
+                    ? $v->$option_value : $option_value($v);
+            }
+            elseif ((int) $n === $n)
+                $n = $v;
+            
+            $html .= '<option value="' . $v . '"';
+            
+            if ($selected_closure($this->_model, $v))
+                $html .= ' selected="selected"';
+            
+            $html .= '>' . $n . '</option>';
+        }
+        
+        return $html . '</select>';
+    }
+
+    private function checked_input($name, $options) 
+    {
+        $html = '<input name="' . $name . '"';
+        
+        if (!isset($options['id']))
+            $html .= ' id="' . $name . '-field"';
+        
+        if (!isset($options['value'])) 
+            $options['value'] = 1;
+        
+        if (isset($options['checked'])) 
+        {
+            if ($options['checked'])
                 $html .= ' checked="checked"';
             
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-                
-            return $html . ' />';
-        }
+            unset($options['checked']);
+        } 
+        elseif ($this->_model && ($this->_model->$name ==$options['value']))
+            $html .= ' checked="checked"';
+        
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
+            
+        return $html . ' />';
+    }
 
-        /**
-         * Creates the <input> radio tag for the given field name. 
-         * The options serve as tag attributes. The default 'name' attribute 
-         * is set to the field name, the default value is set to 1. 
-         * The 'checked' attribute can be set explicitly or estimated from 
-         * the comparision of the model field ($name) and the value.
-         *
-         * @see check_box
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <input> radio button
-         */
-        public function radio_button($name, $options=array()) 
-        {
-            $options['type'] = 'radio';
-            return $this->checked_input($name, $options);
-        }
-        
-        /**
-         * Creates the <input> check box tag for the given field name. 
-         *
-         * Formatting options:
-         *
-         * <ul>
-         * <li><b>unchecked</b>: value of the unchecked box</li>
-         * </ul>
-         *
-         * There is a hidden field put before the the check box containing
-         * the value of the <b>unchecked</b> option. If the check box is not
-         * checked, the hidden field value is sent instead of nothing.
-         * If the <b>unchecked</b> option is not present then it is implicitly
-         * set to 0. If the <b>unchecked</b> is set to <b>false</b> then no
-         * hidden field prepends the check box tag.
-         *
-         * The other options serve as attributes. The default 'name' attribute 
-         * is set to the field name, the default value is set to 1. 
-         * The 'checked' attribute can be set explicitly or estimated from 
-         * the comparision of the model field ($name) and the value.
-         *
-         * @see radio_button
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <input> check box
-         */
-        public function check_box($name, $options=array())
-        {
-            $options['type'] = 'checkbox';
+    /**
+     * Creates the <input> radio tag for the given field name. 
+     * The options serve as tag attributes. The default 'name' attribute 
+     * is set to the field name, the default value is set to 1. 
+     * The 'checked' attribute can be set explicitly or estimated from 
+     * the comparision of the model field ($name) and the value.
+     *
+     * @see check_box
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <input> radio button
+     */
+    public function radio_button($name, $options=array()) 
+    {
+        $options['type'] = 'radio';
+        return $this->checked_input($name, $options);
+    }
+    
+    /**
+     * Creates the <input> check box tag for the given field name. 
+     *
+     * Formatting options:
+     *
+     * <ul>
+     * <li><b>unchecked</b>: value of the unchecked box</li>
+     * </ul>
+     *
+     * There is a hidden field put before the the check box containing
+     * the value of the <b>unchecked</b> option. If the check box is not
+     * checked, the hidden field value is sent instead of nothing.
+     * If the <b>unchecked</b> option is not present then it is implicitly
+     * set to 0. If the <b>unchecked</b> is set to <b>false</b> then no
+     * hidden field prepends the check box tag.
+     *
+     * The other options serve as attributes. The default 'name' attribute 
+     * is set to the field name, the default value is set to 1. 
+     * The 'checked' attribute can be set explicitly or estimated from 
+     * the comparision of the model field ($name) and the value.
+     *
+     * @see radio_button
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <input> check box
+     */
+    public function check_box($name, $options=array())
+    {
+        $options['type'] = 'checkbox';
 
-            if (isset($options['unchecked']))
-            {   
-                $hidden = ($options['unchecked'] === false)
-                    ? '' 
-                    : $this->hidden_field(
-                        $name, 
-                        array('value' => $options['unchecked'])
-                    );
-                
-                unset($options['unchecked']);
-                return $hidden . $this->checked_input($name, $options);
-            }
-            else
-                return $this->hidden_field($name, array('value' => 0))
-                    . $this->checked_input($name, $options);
+        if (isset($options['unchecked']))
+        {   
+            $hidden = ($options['unchecked'] === false)
+                ? '' 
+                : $this->hidden_field(
+                    $name, 
+                    array('value' => $options['unchecked'])
+                );
+            
+            unset($options['unchecked']);
+            return $hidden . $this->checked_input($name, $options);
         }
+        else
+            return $this->hidden_field($name, array('value' => 0))
+                . $this->checked_input($name, $options);
+    }
+    
+    /**
+     * Creates the <textarea> tag for the given field name. 
+     * The options serve as tag attributes. The default 'name' attribute 
+     * is set to the field name as well as the 'id' one. 
+     *
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <textarea> HTML tag
+     */
+    public function text_area($name, $options=array()) 
+    {
+        $html = '<textarea name="' . $name . '"';
+            
+        if (!isset($options['id']))
+            $html .= ' id="' . $name . '-field"';
         
-        /**
-         * Creates the <textarea> tag for the given field name. 
-         * The options serve as tag attributes. The default 'name' attribute 
-         * is set to the field name as well as the 'id' one. 
-         *
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <textarea> HTML tag
-         */
-        public function text_area($name, $options=array()) 
-        {
-            $html = '<textarea name="' . $name . '"';
-                
-            if (!isset($options['id']))
-                $html .= ' id="' . $name . '-field"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . '>' . htmlspecialchars($this->_model->$name) 
-                . '</textarea>';
-        }
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
         
-        /**
-         * Creates the <input> file tag for the given field name. 
-         * The options serve as tag attributes. The default 'name' attribute 
-         * is set to the field name as well as the 'id' one. 
-         *
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <input> file HTML tag
-         */
-        public function file_field($name, $options=array())
-        {
-            $html = '<input type="file" name="' . $name . '"';
-                
-            if (!isset($options['id']))
-                $html .= ' id="' . $name . '-field"';
+        return $html . '>' . htmlspecialchars($this->_model->$name) 
+            . '</textarea>';
+    }
+    
+    /**
+     * Creates the <input> file tag for the given field name. 
+     * The options serve as tag attributes. The default 'name' attribute 
+     * is set to the field name as well as the 'id' one. 
+     *
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <input> file HTML tag
+     */
+    public function file_field($name, $options=array())
+    {
+        $html = '<input type="file" name="' . $name . '"';
             
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-                
-            return $html . ' />';
-        }
+        if (!isset($options['id']))
+            $html .= ' id="' . $name . '-field"';
         
-        private function valued_input($name, $options)
-        {
-            $html = '<input name="' . $name . '"';
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
             
-            if (!isset($options['id']))
-                $html .= ' id="' . $name . '-field"';
-            
-            if (!isset($options['value']) && $this->_model)
-                $html .= ' value="' .htmlspecialchars($this->_model->$name).'"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . ' />';
-        }
+        return $html . ' />';
+    }
+    
+    private function valued_input($name, $options)
+    {
+        $html = '<input name="' . $name . '"';
         
-        /**
-         * Creates the <input> hidden tag for the given field name. 
-         * The options serve as tag attributes. The default 'name' attribute 
-         * is set to the field name as well as the 'id' one. The 'value' is set
-         * to the field name by default.
-         *
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <input> hidden tag
-         */
-        public function hidden_field($name, $options=array())
-        {
-            $options['type'] = 'hidden';
-            return $this->valued_input($name, $options);
-        }
+        if (!isset($options['id']))
+            $html .= ' id="' . $name . '-field"';
         
-        /**
-         * Creates the <input> text tag for the given field name. 
-         * The options serve as tag attributes. The default 'name' attribute 
-         * is set to the field name as well as the 'id' one. The 'value' is set
-         * to the field name by default.
-         *
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <input> text tag
-         */
-        public function text_field($name, $options=array())
-        {
-            $options['type'] = 'text';
-            return $this->valued_input($name, $options);
-        }
+        if (!isset($options['value']) && $this->_model)
+            $html .= ' value="' .htmlspecialchars($this->_model->$name).'"';
         
-        /**
-         * Creates the <input> password tag for the given field name. 
-         * The options serve as tag attributes. The default 'name' attribute 
-         * is set to the field name as well as the 'id' one. The 'value' is set
-         * to the field name by default.
-         *
-         * @param string $name Field name
-         * @param array $options Formatting options
-         * @return string <input> password tag
-         */
-        public function password_field($name, $options=array()) 
-        {
-            $options['type'] = 'password';
-            return $this->valued_input($name, $options);
-        }
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
         
-        /**
-         * Creates the <input> submit button. The options serve as tag
-         * attributes. The 'value' is set to the given parameter value.
-         *
-         * @param string $value Submit button value
-         * @param array $options Formatting options
-         * @return string <input> submit button
-         */
-        public function submit($value, $options=array()) 
-        {
-            $html = '<input type="submit" value="' . $value . '"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . ' />';            
-        }
+        return $html . ' />';
+    }
+    
+    /**
+     * Creates the <input> hidden tag for the given field name. 
+     * The options serve as tag attributes. The default 'name' attribute 
+     * is set to the field name as well as the 'id' one. The 'value' is set
+     * to the field name by default.
+     *
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <input> hidden tag
+     */
+    public function hidden_field($name, $options=array())
+    {
+        $options['type'] = 'hidden';
+        return $this->valued_input($name, $options);
+    }
+    
+    /**
+     * Creates the <input> text tag for the given field name. 
+     * The options serve as tag attributes. The default 'name' attribute 
+     * is set to the field name as well as the 'id' one. The 'value' is set
+     * to the field name by default.
+     *
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <input> text tag
+     */
+    public function text_field($name, $options=array())
+    {
+        $options['type'] = 'text';
+        return $this->valued_input($name, $options);
+    }
+    
+    /**
+     * Creates the <input> password tag for the given field name. 
+     * The options serve as tag attributes. The default 'name' attribute 
+     * is set to the field name as well as the 'id' one. The 'value' is set
+     * to the field name by default.
+     *
+     * @param string $name Field name
+     * @param array $options Formatting options
+     * @return string <input> password tag
+     */
+    public function password_field($name, $options=array()) 
+    {
+        $options['type'] = 'password';
+        return $this->valued_input($name, $options);
+    }
+    
+    /**
+     * Creates the <input> submit button. The options serve as tag
+     * attributes. The 'value' is set to the given parameter value.
+     *
+     * @param string $value Submit button value
+     * @param array $options Formatting options
+     * @return string <input> submit button
+     */
+    public function submit($value, $options=array()) 
+    {
+        $html = '<input type="submit" value="' . $value . '"';
         
-        /**
-         * Creates the <input> button tag. The options serve as tag
-         * attributes. The 'value' is set to the given parameter value.
-         *
-         * @param string $value Button value
-         * @param array $options Formatting options
-         * @return string <input> button tag
-         */
-        public function button($value, $options=array())
-        {
-            $html = '<input type="button" value="' . $value . '"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . ' />';
-        }
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
         
-        /**
-         * Creates the <input> image button tag. Options serve as tag
-         * attributes. The image file is resolved in the same way as in the
-         * {@link image_tag} function.
-         *
-         * @see image_tag
-         * @param string $file Button image file
-         * @param array $options Formatting options
-         * @return string <input> image button tag
-         */
-        public function image($file, $options=array()) 
-        {
-            $html='<input type="image" src="'._asset_url(IMAGES_PATH,$file).'"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . ' />';
-        }
+        return $html . ' />';            
+    }
+    
+    /**
+     * Creates the <input> button tag. The options serve as tag
+     * attributes. The 'value' is set to the given parameter value.
+     *
+     * @param string $value Button value
+     * @param array $options Formatting options
+     * @return string <input> button tag
+     */
+    public function button($value, $options=array())
+    {
+        $html = '<input type="button" value="' . $value . '"';
         
-        /**
-         * Creates the <input> reset button tag. Options serve as tag
-         * attributes. The 'value' is set to the given parameter value.
-         *
-         * @param string $value Button value
-         * @param array $options Formatting options
-         * @return string <input> reset button tag
-         */
-        public function reset($value, $options=array())
-        {
-            $html = '<input type="reset" value="' . $value . '"';
-            
-            foreach ($options as $n => $v)
-                $html .= ' ' . $n . '="' . $v . '"';
-            
-            return $html . ' />';            
-        }
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
+        
+        return $html . ' />';
+    }
+    
+    /**
+     * Creates the <input> image button tag. Options serve as tag
+     * attributes. The image file is resolved in the same way as in the
+     * {@link image_tag} function.
+     *
+     * @see image_tag
+     * @param string $file Button image file
+     * @param array $options Formatting options
+     * @return string <input> image button tag
+     */
+    public function image($file, $options=array()) 
+    {
+        $html='<input type="image" src="'._asset_url(IMAGES_PATH,$file).'"';
+        
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
+        
+        return $html . ' />';
+    }
+    
+    /**
+     * Creates the <input> reset button tag. Options serve as tag
+     * attributes. The 'value' is set to the given parameter value.
+     *
+     * @param string $value Button value
+     * @param array $options Formatting options
+     * @return string <input> reset button tag
+     */
+    public function reset($value, $options=array())
+    {
+        $html = '<input type="reset" value="' . $value . '"';
+        
+        foreach ($options as $n => $v)
+            $html .= ' ' . $n . '="' . $v . '"';
+        
+        return $html . ' />';            
     }
 }
 ?>'''), STRIP_PHPDOC)
