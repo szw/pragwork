@@ -2,8 +2,8 @@
 # encoding: utf-8
 # The MIT License
 
-# Pragwork 1.0.1
-# Prag Generator 1.0.1
+# Pragwork 1.0.2
+# Prag Generator 1.0.2
 # Author: Szymon Wrozynski
 # Copyright (c) 2009-2011 Szymon Wrozynski (http://wrozynski.com)
 # 
@@ -31,9 +31,9 @@ import struct
 import re
 import shutil
 
-__prag_version__ = '1.0.1'
+__prag_version__ = '1.0.2'
 __author__ = 'Copyright (c) 2009-2011 Szymon Wrozynski'
-__pragwork_version__ = '1.0.1'
+__pragwork_version__ = '1.0.2'
 __license__ = 'Licensed under the MIT License'
 
 # Field class (for Model and Scaffolding) ####################################
@@ -6777,6 +6777,12 @@ function get_public_properties($obj)
 {
     return get_object_vars($obj);
 }
+
+spl_autoload_register(function($class)
+{
+    if (strpos($class, 'ActiveRecord\\') === 0)
+        require MODULES . str_replace('\\', DIRECTORY_SEPARATOR, $class).'.php';
+});
 
 require CONFIG . 'activerecord.php';
 ?>'''), STRIP_PHPDOC)
@@ -20587,9 +20593,8 @@ namespace
         . DIRECTORY_SEPARATOR);
     
     /*
-     * Adds the internal class loader to the class loaders chain. 
-     * First, the class loader searches classes in the '/app' directory, then 
-     * in the '/modules' one. 
+     * Adds the internal class loader to the class loaders chain. The class 
+     * loader searches classes in the '/app' directory. 
      *
      * The provided class name should not start with a backslash <b>\</b>
      * character. Notice, that PHP strips the leading backslashes automatically
@@ -20616,12 +20621,10 @@ namespace
      */
     spl_autoload_register(function($class)
     {
-        $class = str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
+        $file = APP . str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
         
-        if (is_file(APP . $class))
-            require APP . $class;
-        elseif (is_file(MODULES . $class))
-            require MODULES . $class;
+        if (is_file($file))
+            require $file;
     });
     
     /**
@@ -21609,6 +21612,12 @@ namespace
         
         return $html . '></script>';
     }
+    
+    spl_autoload_register(function($class)
+    {
+        if ($class === 'Tags\Form')
+            require MODULES . 'Tags' . DIRECTORY_SEPARATOR . 'Form.php';
+    });
 }
 
 namespace Tags
