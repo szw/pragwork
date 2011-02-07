@@ -2,8 +2,8 @@
 # encoding: utf-8
 # The MIT License
 
-# Pragwork 1.0.2
-# Prag Generator 1.0.2
+# Pragwork 1.0.2.1
+# Prag Generator 1.0.2.1
 # Author: Szymon Wrozynski
 # Copyright (c) 2009-2011 Szymon Wrozynski (http://wrozynski.com)
 # 
@@ -31,9 +31,9 @@ import struct
 import re
 import shutil
 
-__prag_version__ = '1.0.2'
+__prag_version__ = '1.0.2.1'
 __author__ = 'Copyright (c) 2009-2011 Szymon Wrozynski'
-__pragwork_version__ = '1.0.2'
+__pragwork_version__ = '1.0.2.1'
 __license__ = 'Licensed under the MIT License'
 
 # Field class (for Model and Scaffolding) ####################################
@@ -7205,7 +7205,6 @@ namespace ActiveRecord;
  *
  * <code>
  * ActiveRecord::initialize(function($cfg) {
- *   $cfg->set_model_home('models');
  *   $cfg->set_connections(array(
  *     'development' => 'mysql://user:pass@development.com/awesome_development',
  *     'production' => 'mysql://user:pass@production.com/awesome_production'));
@@ -7221,7 +7220,6 @@ class Config extends Singleton
 	 *
 	 * <code>
 	 * ActiveRecord\Config::initialize(function($cfg) {
-	 *   $cfg->set_model_directory('/your/app/models');
 	 *   $cfg->set_connections(array(
 	 *     'development' => 'mysql://user:pass@development.com/awesome_development',
 	 *     'production' => 'mysql://user:pass@production.com/awesome_production'));
@@ -7246,14 +7244,6 @@ class Config extends Singleton
 	private $connections = array();
 
 	/**
-	 * Directory for the auto_loading of model classes.
-	 *
-	 * @see activerecord_autoload
-	 * @var string
-	 */
-	private $model_directory;
-
-	/**
 	 * Switch for logging.
 	 *
 	 * @var bool
@@ -7266,13 +7256,6 @@ class Config extends Singleton
 	 * @var object
 	 */
 	private $logger;
-	
-	/**
-     * The format to serialize DateTime values into.
-     *
-     * @var string
-     */
-    private $date_format = \DateTime::ISO8601;
 
 	/**
 	 * Allows config initialization using a closure.
@@ -7385,31 +7368,6 @@ class Config extends Singleton
 	}
 
 	/**
-	 * Sets the directory where models are located.
-	 *
-	 * @param string $dir Directory path containing your models
-	 * @return void
-	 * @throws ConfigException if specified directory was not found
-	 */
-	public function set_model_directory($dir)
-	{
-		if (!file_exists($dir))
-			throw new ConfigException("Invalid or non-existent directory: $dir");
-
-		$this->model_directory = $dir;
-	}
-
-	/**
-	 * Returns the model directory.
-	 *
-	 * @return string
-	 */
-	public function get_model_directory()
-	{
-		return $this->model_directory;
-	}
-
-	/**
 	 * Turn on/off logging
 	 *
 	 * @param boolean $bool
@@ -7456,34 +7414,6 @@ class Config extends Singleton
 	{
 		return $this->logger;
 	}
-	
-	/**
-     * Returns the date format.
-     *
-     * @return string
-     * DEPRECATED
-     */
-    public function get_date_format()
-    {
-        error_log('DEPRECATION WARNING: Config::get_date_format() has been deprecated and will be removed in a future version. Please ActiveRecord\Serialization::$DATETIME_FORMAT instead.');
-
-        return Serialization::$DATETIME_FORMAT;
-    }
-
-    /**
-     * Sets the date format.
-     *
-     * Accepts date formats accepted by PHP's date() function.
-     *
-     * @link http://php.net/manual/en/function.date.php
-     * @param string $format
-     * DEPRECATED
-     */
-    public function set_date_format($format)
-    {
-        error_log('DEPRECATION WARNING: Config::set_date_format() has been deprecated and will be removed in a future version. Please use ActiveRecord\Serialization::$DATETIME_FORMAT instead.');
-        Serialization::$DATETIME_FORMAT = $format;
-    }
     
     /**
      * Sets the url for the cache server to enable query caching.
@@ -7637,7 +7567,7 @@ abstract class Connection
  	 * sqlite://file.db
      * sqlite://../relative/path/to/file.db
      * sqlite://unix(/absolute/path/to/file.db)
-     * sqlite://windows(c:/absolute/path/to/file.db) // TODO currently not implemented
+     * sqlite://windows(c:/absolute/path/to/file.db)
      * </code>
   	 *
      * @param string $connection_url A connection URL
@@ -7660,7 +7590,7 @@ abstract class Connection
         $info->pass = isset($url['pass']) ? $url['pass'] : null;
         
         $allow_blank_db = ($info->protocol == 'sqlite');
-        if ($info->host == 'unix(')
+        if ($info->host === 'unix(')
         {
             $socket_database = $info->host . '/' . $info->db;
             
@@ -7673,6 +7603,12 @@ abstract class Connection
                 $info->host = $matches[1][0];
                 $info->db = $matches[2][0];
             }
+        }
+        elseif (substr($info->host,0,8) === 'windows(')
+        {
+            $info->host = urldecode(substr($info->host,8) . '/' 
+                . substr($info->db, 0, -1));
+            $info->db = null;
         }
         
         if ($allow_blank_db && $info->db)
