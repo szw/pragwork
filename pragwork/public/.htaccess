@@ -1,0 +1,14 @@
+RewriteEngine on
+
+RewriteCond %{REQUEST_URI} \..+$
+RewriteCond %{REQUEST_URI} !\.html$
+RewriteRule .* - [L]
+
+RewriteRule ^$ index.html [QSA]
+RewriteRule ^([^.]+)/$ $1.html [QSA]
+RewriteRule ^([^.]+)$ $1.html [QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+php_flag magic_quotes_gpc off
+php_flag register_globals off

@@ -1,0 +1,3 @@
+# Uncomment these lines to disallow spiders read the site:
+# User-Agent: *
+# Disallow: /
