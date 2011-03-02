@@ -20,4 +20,3 @@ class ReadOnlyException extends ModelException
 		parent::__construct();
 	}
 };
-?>

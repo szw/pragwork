@@ -29,17 +29,20 @@ namespace ActiveRecord;
  * This class isn't meant to be used directly. Callbacks are defined on your model like the example below:
  * 
  * <code>
- * class Person extends ActiveRecord\Model {
- *   static $before_save = array('make_name_uppercase');
- *   static $after_save = array('do_happy_dance');
- *   
- *   public function make_name_uppercase() {
- *     $this->name = strtoupper($this->name);
- *   }
+ * class Person extends ActiveRecord\Model 
+ * {
+ *     static $before_save = array('make_name_uppercase');
+ *	   static $after_save = array('do_happy_dance');
+ *	 
+ *	   public function make_name_uppercase() 
+ *     {
+ *	       $this->name = strtoupper($this->name);
+ *	   }
  * 
- *   public function do_happy_dance() {
- *     happy_dance();
- *   }
+ *	   public function do_happy_dance() 
+ *     {
+ *	       happy_dance();
+ *	   }
  * }
  * </code>
  *
@@ -85,10 +88,10 @@ class CallBack
 	private $klass;
 	
 	/**
-     * List of public methods of the given model
-     * @var array
-     */
-    private $publicMethods;
+	 * List of public methods of the given model
+	 * @var array
+	 */
+	private $publicMethods;
 
 	/**
 	 * Holds data for registered callbacks.
@@ -112,7 +115,7 @@ class CallBack
 			// look for explicitly defined static callback
 			if (($definition = $this->klass->getStaticPropertyValue($name,null)))
 			{
-			    if ((array) $definition !== $definition)
+				if ((array) $definition !== $definition)
 					$definition = array($definition);
 
 				foreach ($definition as $method_name)
@@ -190,67 +193,67 @@ class CallBack
 		return true;
 	}
 
-    /**
-     * Register a new callback.
-     *
-     * The option array can contain the following parameters:
-     * <ul>
-     * <li><b>prepend:</b> Add this callback at the beginning of the existing callbacks (true) or at the end (false, default)</li>
-     * </ul>
-     *
-     * @param string $name Name of callback type (see {@link VALID_CALLBACKS $VALID_CALLBACKS})
-     * @param mixed $closure_or_method_name Either a closure or the name of a method on the {@link Model}
-     * @param array $options Options array
-     * @return void
-     * @throws ActiveRecordException if invalid callback type or callback method was not found
-     */
-    public function register($name, $closure_or_method_name=null, 
-        $options=array())
-    {
-        $options = array_merge(array('prepend' => false), $options);
+	/**
+	 * Register a new callback.
+	 *
+	 * The option array can contain the following parameters:
+	 * <ul>
+	 * <li><b>prepend:</b> Add this callback at the beginning of the existing callbacks (true) or at the end (false, default)</li>
+	 * </ul>
+	 *
+	 * @param string $name Name of callback type (see {@link VALID_CALLBACKS $VALID_CALLBACKS})
+	 * @param mixed $closure_or_method_name Either a closure or the name of a method on the {@link Model}
+	 * @param array $options Options array
+	 * @return void
+	 * @throws ActiveRecordException if invalid callback type or callback method was not found
+	 */
+	public function register($name, $closure_or_method_name=null, 
+		$options=array())
+	{
+		$options = array_merge(array('prepend' => false), $options);
 
-        if (!$closure_or_method_name)
-            $closure_or_method_name = $name;
+		if (!$closure_or_method_name)
+			$closure_or_method_name = $name;
 
-        if (!in_array($name,self::$VALID_CALLBACKS))
-            throw new ActiveRecordException("Invalid callback: $name");
+		if (!in_array($name,self::$VALID_CALLBACKS))
+			throw new ActiveRecordException("Invalid callback: $name");
 
-        if (!($closure_or_method_name instanceof \Closure))
-        {
-            if (!isset($this->publicMethods))
-                $this->publicMethods=get_class_methods($this->klass->getName());
+		if (!($closure_or_method_name instanceof \Closure))
+		{
+			if (!isset($this->publicMethods))
+				$this->publicMethods=get_class_methods($this->klass->getName());
 
-            if (!in_array($closure_or_method_name, $this->publicMethods))
-            {
-                if ($this->klass->hasMethod($closure_or_method_name))
-                {
-                    // Method is private or protected
-                    throw new ActiveRecordException(
-                "Callback methods need to be public (or anonymous closures). " 
-                ."Please change the visibility of " . $this->klass->getName() 
-                . "->" . $closure_or_method_name . "()");
-                }
-                else
-                {
-                    // i'm a dirty ruby programmer
-                    throw new ActiveRecordException(
-                        "Unknown method for callback: $name" 
-                        . (is_string($closure_or_method_name) 
-                            ? ": #$closure_or_method_name" 
-                            : ""
-                        )
-                    );
-                }
-            }
-        }
+			if (!in_array($closure_or_method_name, $this->publicMethods))
+			{
+				if ($this->klass->hasMethod($closure_or_method_name))
+				{
+					// Method is private or protected
+					throw new ActiveRecordException(
+				"Callback methods need to be public (or anonymous closures). " 
+				."Please change the visibility of " . $this->klass->getName() 
+				. "->" . $closure_or_method_name . "()");
+				}
+				else
+				{
+					// i'm a dirty ruby programmer
+					throw new ActiveRecordException(
+						"Unknown method for callback: $name" 
+						. (is_string($closure_or_method_name) 
+							? ": #$closure_or_method_name" 
+							: ""
+						)
+					);
+				}
+			}
+		}
 
-        if (!isset($this->registry[$name]))
-            $this->registry[$name] = array();
+		if (!isset($this->registry[$name]))
+			$this->registry[$name] = array();
 
-        if ($options['prepend'])
-            array_unshift($this->registry[$name], $closure_or_method_name);
-        else
-            $this->registry[$name][] = $closure_or_method_name;
-    }
+		if ($options['prepend'])
+			array_unshift($this->registry[$name], $closure_or_method_name);
+		else
+			$this->registry[$name][] = $closure_or_method_name;
+	}
 }
 ?>

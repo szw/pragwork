@@ -8,10 +8,10 @@ namespace ActiveRecord;
  *
  * <code>
  * class Person extends ActiveRecord\Model {
- *   static $validates_length_of = array(
- *     array('name', 'within' => array(30,100),
- *     array('state', 'is' => 2)
- *   );
+ *	 static $validates_length_of = array(
+ *	   array('name', 'within' => array(30,100),
+ *	   array('state', 'is' => 2)
+ *	 );
  * }
  *
  * $person = new Person();
@@ -19,7 +19,7 @@ namespace ActiveRecord;
  * $person->state = 'this is not two characters';
  *
  * if (!$person->is_valid())
- *   print_r($person->errors);
+ *	 print_r($person->errors);
  * </code>
  *
  * @package ActiveRecord
@@ -51,7 +51,7 @@ class Validations
 		'message' => null,
 	);
 
-	private static  $ALL_RANGE_OPTIONS = array(
+	private static	$ALL_RANGE_OPTIONS = array(
 		'is' => null,
 		'within' => null,
 		'in' => null,
@@ -61,7 +61,7 @@ class Validations
 
 	private static $ALL_NUMERICALITY_CHECKS = array(
 		'greater_than' => null,
-		'greater_than_or_equal_to'  => null,
+		'greater_than_or_equal_to'	=> null,
 		'equal_to' => null,
 		'less_than' => null,
 		'less_than_or_equal_to' => null,
@@ -80,60 +80,60 @@ class Validations
 		$this->model = $model;
 		$this->record = new Errors($this->model);
 		$this->klass = Reflections::instance()->get(get_class($this->model));
-        $this->validators =
-            array_intersect(array_keys($this->klass->getStaticProperties()),        
-            self::$VALIDATION_FUNCTIONS);
-    }
+		$this->validators =
+			array_intersect(array_keys($this->klass->getStaticProperties()),		
+			self::$VALIDATION_FUNCTIONS);
+	}
 
-    public function get_record()
-    {
-        return $this->record;
-    }    
+	public function get_record()
+	{
+		return $this->record;
+	}	 
 	
 	/**
-     * Normalizes static definitions (e.g. wraps string definitions 
-     * (if any) into arrays).
-     */
-    private static function normalize_definitions($definitions)
-    {   
-        if ((array) $definitions !== $definitions)
-            return array(array($definitions));
+	 * Normalizes static definitions (e.g. wraps string definitions 
+	 * (if any) into arrays).
+	 */
+	private static function normalize_definitions($definitions)
+	{	
+		if ((array) $definitions !== $definitions)
+			return array(array($definitions));
 
-        $normalized_definitions = array();
-        $outer_options = array();
+		$normalized_definitions = array();
+		$outer_options = array();
 
-        foreach ($definitions as $key => $body)
-        {   
-            if ((string) $key === $key)
-                $outer_options[$key] = $body;
-            elseif ((array) $body === $body)
-            {    
-                $inner_options = array();
+		foreach ($definitions as $key => $body)
+		{	
+			if ((string) $key === $key)
+				$outer_options[$key] = $body;
+			elseif ((array) $body === $body)
+			{	 
+				$inner_options = array();
 
-                foreach ($body as $k => $v)
-                {
-                    if ((string) $k === $k)
-                    {
-                        $inner_options[$k] = $v;
-                        unset($body[$k]);
-                    }
-                }
+				foreach ($body as $k => $v)
+				{
+					if ((string) $k === $k)
+					{
+						$inner_options[$k] = $v;
+						unset($body[$k]);
+					}
+				}
 
-                foreach ($body as $b)
-                    $normalized_definitions[] = array($b) + $inner_options;
-            }
-            else
-                $normalized_definitions[] = array($body);                        
-        }
+				foreach ($body as $b)
+					$normalized_definitions[] = array($b) + $inner_options;
+			}
+			else
+				$normalized_definitions[] = array($body);						 
+		}
 
-        if ($outer_options)
-        {
-            foreach ($normalized_definitions as &$nd)
-                $nd += $outer_options;
-        }
+		if ($outer_options)
+		{
+			foreach ($normalized_definitions as &$nd)
+				$nd += $outer_options;
+		}
 
-        return $normalized_definitions;
-    }
+		return $normalized_definitions;
+	}
 
 	/**
 	 * Returns validator data.
@@ -141,16 +141,16 @@ class Validations
 	 * @return array
 	 */
 	public function rules()
-    {
-        $data = array();
+	{
+		$data = array();
 
-        foreach ($this->validators as $validate)
-        {
-    	    $attrs = $this->klass->getStaticPropertyValue($validate);
-            
-    	    foreach (self::normalize_definitions($attrs) as $attr)
-    	    {
-    	        $field = $attr[0];
+		foreach ($this->validators as $validate)
+		{
+			$attrs = $this->klass->getStaticPropertyValue($validate);
+			
+			foreach (self::normalize_definitions($attrs) as $attr)
+			{
+				$field = $attr[0];
 
 				if (!isset($data[$field]) || !is_array($data[$field]))
 					$data[$field] = array();
@@ -158,10 +158,10 @@ class Validations
 				$attr['validator'] = $validate;
 				unset($attr[0]);
 				array_push($data[$field],$attr);
-    	    }
-    	}
-        return $data;
-    }
+			}
+		}
+		return $data;
+	}
 
 	/**
 	 * Runs the validators.
@@ -169,31 +169,31 @@ class Validations
 	 * @return Errors the validation errors if any
 	 */
 	public function validate()
-    {   
+	{	
 		foreach ($this->validators as $validate)
 		{
-		    $definition = $this->klass->getStaticPropertyValue($validate);
+			$definition = $this->klass->getStaticPropertyValue($validate);
 			$this->$validate(self::normalize_definitions($definition));
-        }
-        
-        $model_reflection = Reflections::instance()->get($this->model);
-        if ($model_reflection->hasMethod('validate') 
-            && $model_reflection->getMethod('validate')->isPublic())
-            $this->model->validate();
-        
-        $this->record->clear_model();
+		}
+		
+		$model_reflection = Reflections::instance()->get($this->model);
+		if ($model_reflection->hasMethod('validate') 
+			&& $model_reflection->getMethod('validate')->isPublic())
+			$this->model->validate();
+		
+		$this->record->clear_model();
 		return $this->record;
-    }
+	}
 
 	/**
 	 * Validates a field is not null and not blank.
 	 *
 	 * <code>
 	 * class Person extends ActiveRecord\Model {
-	 *   static $validates_presence_of = array(
-	 *     array('first_name'),
-	 *     array('last_name')
-	 *   );
+	 *	 static $validates_presence_of = array(
+	 *	   array('first_name'),
+	 *	   array('last_name')
+	 *	 );
 	 * }
 	 * </code>
 	 *
@@ -221,9 +221,9 @@ class Validations
 	 *
 	 * <code>
 	 * class Car extends ActiveRecord\Model {
-	 *   static $validates_inclusion_of = array(
-	 *     array('fuel_type', 'in' => array('hyrdogen', 'petroleum', 'electric')),
-	 *   );
+	 *	 static $validates_inclusion_of = array(
+	 *	   array('fuel_type', 'in' => array('hyrdogen', 'petroleum', 'electric')),
+	 *	 );
 	 * }
 	 * </code>
 	 *
@@ -289,116 +289,116 @@ class Validations
 	}
 
 	/**
-     * Validates that a value is numeric.
-     *
-     * <code>
-     * class Person extends ActiveRecord\Model {
-     *     static $validates_numericality_of = array(
-     *         array('salary', 'greater_than' => 19.99, 'less_than' => 99.99)
-     *     );
-     * }
-     * </code>
-     *
-     * Available options:
-     *
-     * <ul>
-     * <li><b>only_integer:</b> value must be an integer (e.g. not a float)</li>
-     * <li><b>even:</b> must be even</li>
-     * <li><b>odd:</b> must be odd"</li>
-     * <li><b>greater_than:</b> must be greater than specified number</li>
-     * <li><b>greater_than_or_equal_to:</b> must be greater than or equal to specified number</li>
-     * <li><b>equal_to:</b> ...</li>
-     * <li><b>less_than:</b> ...</li>
-     * <li><b>less_than_or_equal_to:</b> ...</li>
-     * </ul>
-     *
-     * @param array $attrs Validation definition
-     */
-    public function validates_numericality_of($attrs)
-    {
-        $configuration = array_merge(
-            self::$DEFAULT_VALIDATION_OPTIONS,     
-            array('only_integer' => false)
-        );
+	 * Validates that a value is numeric.
+	 *
+	 * <code>
+	 * class Person extends ActiveRecord\Model {
+	 *	   static $validates_numericality_of = array(
+	 *		   array('salary', 'greater_than' => 19.99, 'less_than' => 99.99)
+	 *	   );
+	 * }
+	 * </code>
+	 *
+	 * Available options:
+	 *
+	 * <ul>
+	 * <li><b>only_integer:</b> value must be an integer (e.g. not a float)</li>
+	 * <li><b>even:</b> must be even</li>
+	 * <li><b>odd:</b> must be odd"</li>
+	 * <li><b>greater_than:</b> must be greater than specified number</li>
+	 * <li><b>greater_than_or_equal_to:</b> must be greater than or equal to specified number</li>
+	 * <li><b>equal_to:</b> ...</li>
+	 * <li><b>less_than:</b> ...</li>
+	 * <li><b>less_than_or_equal_to:</b> ...</li>
+	 * </ul>
+	 *
+	 * @param array $attrs Validation definition
+	 */
+	public function validates_numericality_of($attrs)
+	{
+		$configuration = array_merge(
+			self::$DEFAULT_VALIDATION_OPTIONS,	   
+			array('only_integer' => false)
+		);
 
-        // Notice that for fixnum and float columns empty strings are converted to nil.
-        // Validates whether the value of the specified attribute is numeric by trying to convert it to a float with Kernel.Float
-        // (if only_integer is false) or applying it to the regular expression /\A[+\-]?\d+\Z/ (if only_integer is set to true).
-        foreach ($attrs as $attr)
-        {
-            $options = array_merge($configuration, $attr);
-            $attribute = $options[0];
-            $var = $this->model->$attribute;
+		// Notice that for fixnum and float columns empty strings are converted to nil.
+		// Validates whether the value of the specified attribute is numeric by trying to convert it to a float with Kernel.Float
+		// (if only_integer is false) or applying it to the regular expression /\A[+\-]?\d+\Z/ (if only_integer is set to true).
+		foreach ($attrs as $attr)
+		{
+			$options = array_merge($configuration, $attr);
+			$attribute = $options[0];
+			$var = $this->model->$attribute;
 
-            $numericalityOptions =
-                array_intersect_key(self::$ALL_NUMERICALITY_CHECKS, $options);
+			$numericalityOptions =
+				array_intersect_key(self::$ALL_NUMERICALITY_CHECKS, $options);
 
-            if ($this->is_null_with_option($var, $options))
-                continue;
+			if ($this->is_null_with_option($var, $options))
+				continue;
 
-            $not_a_number_message = isset($options['message']) 
-                ? $options['message'] 
-                : Errors::$DEFAULT_ERROR_MESSAGES['not_a_number'];
+			$not_a_number_message = isset($options['message']) 
+				? $options['message'] 
+				: Errors::$DEFAULT_ERROR_MESSAGES['not_a_number'];
 
-            if (true === $options['only_integer'] && !is_integer($var))
-            {
-                if (!preg_match('/\A[+-]?\d+\Z/', (string)($var)))
-                {
-                    $this->record->add($attribute, $not_a_number_message);
-                    continue;
-                }
-            }
-            else
-            {
-                if (!is_numeric($var))
-                {
-                    $this->record->add($attribute, $not_a_number_message);
-                    continue;
-                }
+			if (true === $options['only_integer'] && !is_integer($var))
+			{
+				if (!preg_match('/\A[+-]?\d+\Z/', (string)($var)))
+				{
+					$this->record->add($attribute, $not_a_number_message);
+					continue;
+				}
+			}
+			else
+			{
+				if (!is_numeric($var))
+				{
+					$this->record->add($attribute, $not_a_number_message);
+					continue;
+				}
 
-                $var = (float)$var;
-            }
+				$var = (float)$var;
+			}
 
-            foreach ($numericalityOptions as $option => $check)
-            {
-                $option_value = $options[$option];
-                $message = isset($options['message']) 
-                    ? $options['message'] 
-                    : Errors::$DEFAULT_ERROR_MESSAGES[$option];
+			foreach ($numericalityOptions as $option => $check)
+			{
+				$option_value = $options[$option];
+				$message = isset($options['message']) 
+					? $options['message'] 
+					: Errors::$DEFAULT_ERROR_MESSAGES[$option];
 
-                if ('odd' != $option && 'even' != $option)
-                {
-                    $option_value = (float)$options[$option];
+				if ('odd' != $option && 'even' != $option)
+				{
+					$option_value = (float)$options[$option];
 
-                    if (!is_numeric($option_value))
-                        throw new ValidationsArgumentError(
-                            "$option must be a number"
-                        );
+					if (!is_numeric($option_value))
+						throw new ValidationsArgumentError(
+							"$option must be a number"
+						);
 
-                    $message = str_replace('%d', $option_value, $message);
+					$message = str_replace('%d', $option_value, $message);
 
-                    if ('greater_than' == $option && !($var > $option_value))
-                        $this->record->add($attribute, $message);
-                    elseif ('greater_than_or_equal_to' == $option 
-                        && !($var >= $option_value))
-                        $this->record->add($attribute, $message);
-                    elseif ('equal_to' == $option && !($var == $option_value))
-                        $this->record->add($attribute, $message);
-                    elseif ('less_than' == $option && !($var < $option_value))
-                        $this->record->add($attribute, $message);
-                    elseif ('less_than_or_equal_to' == $option 
-                        && !($var <= $option_value))
-                    $this->record->add($attribute, $message);
-                }
-                else
-                {
-                    if (('odd' == $option && !Utils::is_odd($var)) 
-                        || ('even' == $option && Utils::is_odd($var)))
-                        $this->record->add($attribute, $message);
-                }
-            }
-        }
-    }
+					if ('greater_than' == $option && !($var > $option_value))
+						$this->record->add($attribute, $message);
+					elseif ('greater_than_or_equal_to' == $option 
+						&& !($var >= $option_value))
+						$this->record->add($attribute, $message);
+					elseif ('equal_to' == $option && !($var == $option_value))
+						$this->record->add($attribute, $message);
+					elseif ('less_than' == $option && !($var < $option_value))
+						$this->record->add($attribute, $message);
+					elseif ('less_than_or_equal_to' == $option 
+						&& !($var <= $option_value))
+					$this->record->add($attribute, $message);
+				}
+				else
+				{
+					if (('odd' == $option && !Utils::is_odd($var)) 
+						|| ('even' == $option && Utils::is_odd($var)))
+						$this->record->add($attribute, $message);
+				}
+			}
+		}
+	}
 
 	/**
 	 * Alias of {@link validates_length_of}
@@ -415,9 +415,9 @@ class Validations
 	 *
 	 * <code>
 	 * class Person extends ActiveRecord\Model {
-	 *   static $validates_format_of = array(
-	 *     array('email', 'with' => '/^.*?@.*$/')
-	 *   );
+	 *	 static $validates_format_of = array(
+	 *	   array('email', 'with' => '/^.*?@.*$/')
+	 *	 );
 	 * }
 	 * </code>
 	 *
@@ -458,9 +458,9 @@ class Validations
 	 *
 	 * <code>
 	 * class Person extends ActiveRecord\Model {
-	 *   static $validates_length_of = array(
-	 *     array('name', 'within' => array(1,50))
-	 *   );
+	 *	 static $validates_length_of = array(
+	 *	   array('name', 'within' => array(1,50))
+	 *	 );
 	 * }
 	 * </code>
 	 *
@@ -471,111 +471,110 @@ class Validations
 	 * <li><b>in/within:</b> attribute should be within an range array(min,max)</li>
 	 * <li><b>maximum/minimum:</b> attribute should not be above/below respectively</li>
 	 * <li><b>message:</b> custome error message</li>
-     * <li><b>allow_blank:</b> allow blank strings</li>
-     * <li><b>allow_null:</b> allow null strings. (Even if this is set to false, a null string is always shorter than a maximum value.)</li>
-     * </ul>
+	 * <li><b>allow_blank:</b> allow blank strings</li>
+	 * <li><b>allow_null:</b> allow null strings. (Even if this is set to false, a null string is always shorter than a maximum value.)</li>
 	 * </ul>
 	 *
 	 * @param array $attrs Validation definition
 	 */
-    public function validates_length_of($attrs)
-    {
-        $configuration = array_merge(self::$DEFAULT_VALIDATION_OPTIONS, array(
-            'too_long' => Errors::$DEFAULT_ERROR_MESSAGES['too_long'],
-            'too_short' => Errors::$DEFAULT_ERROR_MESSAGES['too_short'],
-            'wrong_length' => Errors::$DEFAULT_ERROR_MESSAGES['wrong_length']
-        ));
+	public function validates_length_of($attrs)
+	{
+		$configuration = array_merge(self::$DEFAULT_VALIDATION_OPTIONS, array(
+			'too_long' => Errors::$DEFAULT_ERROR_MESSAGES['too_long'],
+			'too_short' => Errors::$DEFAULT_ERROR_MESSAGES['too_short'],
+			'wrong_length' => Errors::$DEFAULT_ERROR_MESSAGES['wrong_length']
+		));
 
-        foreach ($attrs as $attr)
-        {
-            $options = array_merge($configuration, $attr);
-            $range_options = array_intersect(
-                array_keys(self::$ALL_RANGE_OPTIONS), 
-                array_keys($attr)
-            );
-            sort($range_options);
+		foreach ($attrs as $attr)
+		{
+			$options = array_merge($configuration, $attr);
+			$range_options = array_intersect(
+				array_keys(self::$ALL_RANGE_OPTIONS), 
+				array_keys($attr)
+			);
+			sort($range_options);
 
-            switch (sizeof($range_options))
-            {
-                case 0:
-                    throw new ValidationsArgumentError('Range unspecified. Specify the [within], [maximum], or [is] option.');
-                case 1:
-                    break;
-                default:
-                    throw new ValidationsArgumentError('Too many range options specified. Choose only one.');
-            }
+			switch (sizeof($range_options))
+			{
+				case 0:
+					throw new ValidationsArgumentError('Range unspecified. Specify the [within], [maximum], or [is] option.');
+				case 1:
+					break;
+				default:
+					throw new ValidationsArgumentError('Too many range options specified. Choose only one.');
+			}
 
-            $attribute = $options[0];
-            $var = $this->model->$attribute;
-            
-            if ($this->is_null_with_option($var, $options) 
-                || $this->is_blank_with_option($var, $options))
-                continue;
-            
-            if ($range_options[0] == 'within' || $range_options[0] == 'in')
-            {
-                $range = $options[$range_options[0]];
+			$attribute = $options[0];
+			$var = $this->model->$attribute;
+			
+			if ($this->is_null_with_option($var, $options) 
+				|| $this->is_blank_with_option($var, $options))
+				continue;
+			
+			if ($range_options[0] == 'within' || $range_options[0] == 'in')
+			{
+				$range = $options[$range_options[0]];
 
-                if (!(Utils::is_a('range', $range)))
-                    throw new ValidationsArgumentError("$range_option must be an array composing a range of numbers with key [0] being less than key [1]");
-                
-                $range_options = array('minimum', 'maximum');
-                $attr['minimum'] = $range[0];
-                $attr['maximum'] = $range[1];
-            }
-            
-            foreach ($range_options as $range_option)
-            {
-                $option = $attr[$range_option];
+				if (!(Utils::is_a('range', $range)))
+					throw new ValidationsArgumentError("$range_option must be an array composing a range of numbers with key [0] being less than key [1]");
+				
+				$range_options = array('minimum', 'maximum');
+				$attr['minimum'] = $range[0];
+				$attr['maximum'] = $range[1];
+			}
+			
+			foreach ($range_options as $range_option)
+			{
+				$option = $attr[$range_option];
 
-                if ((int)$option <= 0)
-                    throw new ValidationsArgumentError("$range_option value cannot use a signed integer.");
+				if ((int)$option <= 0)
+					throw new ValidationsArgumentError("$range_option value cannot use a signed integer.");
 
-                if (is_float($option))
-                    throw new ValidationsArgumentError("$range_option value cannot use a float for length.");
+				if (is_float($option))
+					throw new ValidationsArgumentError("$range_option value cannot use a float for length.");
 
-                if (!($range_option == 'maximum' 
-                    && is_null($this->model->$attribute)))
-                {
-                    $messageOptions = array(
-                        'is' => 'wrong_length', 
-                        'minimum' => 'too_short', 
-                        'maximum' => 'too_long'
-                    );
+				if (!($range_option == 'maximum' 
+					&& is_null($this->model->$attribute)))
+				{
+					$messageOptions = array(
+						'is' => 'wrong_length', 
+						'minimum' => 'too_short', 
+						'maximum' => 'too_long'
+					);
 
-                    if (isset($options['message']))
-                        $message = $options['message'];
-                    else
-                        $message = $options[$messageOptions[$range_option]];
+					if (isset($options['message']))
+						$message = $options['message'];
+					else
+						$message = $options[$messageOptions[$range_option]];
 
 
-                    $message = str_replace('%d', $option, $message);
-                    $attribute_value = $this->model->$attribute;
-                    $len = strlen($attribute_value);
-                    $value = (int)$attr[$range_option];
+					$message = str_replace('%d', $option, $message);
+					$attribute_value = $this->model->$attribute;
+					$len = strlen($attribute_value);
+					$value = (int)$attr[$range_option];
 
-                    if ('maximum' == $range_option && $len > $value)
-                        $this->record->add($attribute, $message);
+					if ('maximum' == $range_option && $len > $value)
+						$this->record->add($attribute, $message);
 
-                    if ('minimum' == $range_option && $len < $value)
-                        $this->record->add($attribute, $message);
+					if ('minimum' == $range_option && $len < $value)
+						$this->record->add($attribute, $message);
 
-                    if ('is' == $range_option && $len !== $value)
-                        $this->record->add($attribute, $message);
-                }
-            }
-        }
-    }
+					if ('is' == $range_option && $len !== $value)
+						$this->record->add($attribute, $message);
+				}
+			}
+		}
+	}
 
 	/**
 	 * Validates the uniqueness of a value.
 	 *
 	 * <code>
 	 * class Person extends ActiveRecord\Model {
-	 *   static $validates_uniqueness_of = array(
-	 *     array('name'),
-	 *     array(array('blah','bleh'), 'message' => 'blech')
-	 *   );
+	 *	 static $validates_uniqueness_of = array(
+	 *	   array('name'),
+	 *	   array(array('blah','bleh'), 'message' => 'blech')
+	 *	 );
 	 * }
 	 * </code>
 	 *
@@ -617,7 +616,7 @@ class Validations
 
 			foreach ($fields as $field)
 			{
-			    $field = $this->model->get_real_attribute_name($field);
+				$field = $this->model->get_real_attribute_name($field);
 				$sql .= " and {$field}=?";
 				array_push($conditions,$this->model->$field);
 			}

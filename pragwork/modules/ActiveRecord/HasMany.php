@@ -12,9 +12,9 @@ namespace ActiveRecord;
  * # Table: schools
  * # Primary key: id
  * class School extends ActiveRecord\Model {
- *   static $has_many = array(
- *     array('people')
- *   );
+ *	 static $has_many = array(
+ *	   array('people')
+ *	 );
  * });
  * </code>
  *
@@ -22,19 +22,19 @@ namespace ActiveRecord;
  *
  * <code>
  * class Payment extends ActiveRecord\Model {
- *   static $belongs_to = array(
- *     array('person'),
- *     array('order')
- *   );
+ *	 static $belongs_to = array(
+ *	   array('person'),
+ *	   array('order')
+ *	 );
  * }
  *
  * class Order extends ActiveRecord\Model {
- *   static $has_many = array(
- *     array('people',
- *           'through'    => 'payments',
- *           'select'     => 'people.*, payments.amount',
- *           'conditions' => 'payments.amount < 200')
- *     );
+ *	 static $has_many = array(
+ *	   array('people',
+ *			 'through'	  => 'payments',
+ *			 'select'	  => 'people.*, payments.amount',
+ *			 'conditions' => 'payments.amount < 200')
+ *	   );
  * }
  * </code>
  *
@@ -49,11 +49,11 @@ class HasMany extends AbstractRelationship
 	 *
 	 * <ul>
 	 * <li><b>limit/offset:</b> limit the number of records</li>
-     * <li><b>primary_key:</b> name of the primary_key of the association (defaults to "id")</li>
-     * <li><b>group:</b> GROUP BY clause</li>
-     * <li><b>order:</b> ORDER BY clause</li>
-     * <li><b>through:</b> name of a model</li>
-     * </ul>
+	 * <li><b>primary_key:</b> name of the primary_key of the association (defaults to "id")</li>
+	 * <li><b>group:</b> GROUP BY clause</li>
+	 * <li><b>order:</b> ORDER BY clause</li>
+	 * <li><b>through:</b> name of a model</li>
+	 * </ul>
 	 *
 	 * @var array
 	 */
@@ -93,8 +93,8 @@ class HasMany extends AbstractRelationship
 	{
 		//infer from class_name
 		if (!$this->foreign_key || $override)
-		    $this->foreign_key =
-		        array(Inflector::instance()->keyify($model_class_name));
+			$this->foreign_key =
+				array(Inflector::instance()->keyify($model_class_name));
 
 		if (!$this->primary_key || $override)
 			$this->primary_key = Table::load($model_class_name)->pk;

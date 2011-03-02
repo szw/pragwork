@@ -87,11 +87,11 @@ abstract class Inflector
 	}
 	
 	public function keyify($class_name)
-    {
-        return strtolower(
-            $this->underscorify(denamespace($class_name))
-        ) . '_id';
-    }
+	{
+		return strtolower(
+			$this->underscorify(denamespace($class_name))
+		) . '_id';
+	}
 
 	/**
 	 * Convert a string with space into a underscored equivalent.

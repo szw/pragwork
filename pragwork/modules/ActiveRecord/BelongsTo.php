@@ -7,9 +7,9 @@ namespace ActiveRecord;
  * class School extends ActiveRecord\Model {}
  *
  * class Person extends ActiveRecord\Model {
- *   static $belongs_to = array(
- *     array('school')
- *   );
+ *	 static $belongs_to = array(
+ *	   array('school')
+ *	 );
  * }
  * </code>
  *
@@ -19,9 +19,9 @@ namespace ActiveRecord;
  * class School extends ActiveRecord\Model {}
  *
  * class Person extends ActiveRecord\Model {
- *   static $belongs_to = array(
- *     array('school', 'primary_key' => 'school_id')
- *   );
+ *	 static $belongs_to = array(
+ *	   array('school', 'primary_key' => 'school_id')
+ *	 );
  * }
  * </code>
  *
@@ -40,8 +40,8 @@ class BelongsTo extends AbstractRelationship
 
 		//infer from class_name
 		if (!$this->foreign_key)
-		    $this->foreign_key = 
-		        array(Inflector::instance()->keyify($this->class_name));
+			$this->foreign_key = 
+				array(Inflector::instance()->keyify($this->class_name));
 
 		$this->primary_key = array(Table::load($this->class_name)->pk[0]);
 	}

@@ -23,16 +23,16 @@ class Reflections extends Singleton
 	public function add($class=null)
 	{
 		$class = $this->get_class($class);
-        
+		
 		if (!isset($this->reflections[$class]))
 		{
-		    foreach (array('has_many', 'has_one', 'has_and_belongs_to_many', 
-                'belongs_to') as $assoc_name)
-            {
-                if (isset($class::$$assoc_name))
-                    self::normalize_associations($class::$$assoc_name);
-            }
-            
+			foreach (array('has_many', 'has_one', 'has_and_belongs_to_many', 
+				'belongs_to') as $assoc_name)
+			{
+				if (isset($class::$$assoc_name))
+					self::normalize_associations($class::$$assoc_name);
+			}
+			
 			$this->reflections[$class] = new \ReflectionClass($class);
 		}
 			
@@ -40,31 +40,31 @@ class Reflections extends Singleton
 	}
 	
 	private static function normalize_associations(&$definitions)
-    {
-        if ((array) $definitions !== $definitions)
-            $definitions = array(array($definitions));
-        else 
-        {
-            $options = array();
+	{
+		if ((array) $definitions !== $definitions)
+			$definitions = array(array($definitions));
+		else 
+		{
+			$options = array();
 
-            foreach ($definitions as $key => $value)
-            {
-                if (is_string($key))
-                {
-                    $options[$key] = $value;
-                    unset($definitions[$key]);
-                }
-                elseif ((array) $value !== $value)
-                    $definitions[$key] = array($value);
-            }
+			foreach ($definitions as $key => $value)
+			{
+				if (is_string($key))
+				{
+					$options[$key] = $value;
+					unset($definitions[$key]);
+				}
+				elseif ((array) $value !== $value)
+					$definitions[$key] = array($value);
+			}
 
-            if ($options)
-            {
-                foreach ($definitions as &$entry)
-                    $entry += $options;
-            }
-        }
-    }
+			if ($options)
+			{
+				foreach ($definitions as &$entry)
+					$entry += $options;
+			}
+		}
+	}
 
 	/**
 	 * Destroys the cached \ReflectionClass.

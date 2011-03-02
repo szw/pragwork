@@ -14,12 +14,12 @@ class OciAdapter extends Connection
 	{
 		try 
 		{
-		    $this->dsn_params = isset($info->charset) 
-		        ? ";charset=$info->charset" : "";
+			$this->dsn_params = isset($info->charset) 
+				? ";charset=$info->charset" : "";
 			$this->connection = 
-			    new \PDO("oci:dbname=//$info->host/$info->db$this->dsn_params",
-			        $info->user,$info->pass,static::$PDO_OPTIONS
-			    );
+				new \PDO("oci:dbname=//$info->host/$info->db$this->dsn_params",
+					$info->user,$info->pass,static::$PDO_OPTIONS
+				);
 		} 
 		catch (\PDOException $e) 
 		{
@@ -40,9 +40,9 @@ class OciAdapter extends Connection
 	}
 	
 	public function date_to_string($datetime)
-    {
-        return $datetime->format('d-M-Y');
-    }
+	{
+		return $datetime->format('d-M-Y');
+	}
 
 	public function datetime_to_string($datetime)
 	{
@@ -114,14 +114,31 @@ class OciAdapter extends Connection
 			$c->raw_type = $column['data_type'];
 
 		$c->map_raw_type();
-		$c->default	= $c->cast($column['data_default'],$this);
+		$c->default = $c->cast($column['data_default'],$this);
 
 		return $c;
 	}
 	
 	public function set_encoding($charset)
 	{
-        // is handled in the constructor
-    }
+		// is handled in the constructor
+	}
+	
+	public function native_database_types()
+	{
+		return array(
+			'primary_key' => "NUMBER(38) NOT NULL PRIMARY KEY",
+			'string' => array('name' => 'VARCHAR2', 'length' => 255),
+			'text' => array('name' => 'CLOB'),
+			'integer' => array('name' => 'NUMBER', 'length' => 38),
+			'float' => array('name' => 'NUMBER'),
+			'datetime' => array('name' => 'DATE'),
+			'timestamp' => array('name' => 'DATE'),
+			'time' => array('name' => 'DATE'),
+			'date' => array('name' => 'DATE'),
+			'binary' => array('name' => 'BLOB'),
+			'boolean' => array('name' => 'NUMBER', 'length' => 1)
+		);
+	}
 }
 ?>

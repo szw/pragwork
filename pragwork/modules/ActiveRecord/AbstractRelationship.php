@@ -113,7 +113,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 	protected function query_and_attach_related_models_eagerly(Table $table, $models, $attributes, $includes=array(), $query_keys=array(), $model_values_keys=array())
 	{
 		$values = array();
-        $options = $this->options;
+		$options = $this->options;
 		$inflector = Inflector::instance();
 		$query_key = $query_keys[0];
 		$model_values_key = $model_values_keys[0];
@@ -123,20 +123,20 @@ abstract class AbstractRelationship implements InterfaceRelationship
 
 		$values = array($values);
 		$conditions = SQLBuilder::create_conditions_from_underscored_string(
-		    $table->conn,
-		    $query_key,
-		    $values
+			$table->conn,
+			$query_key,
+			$values
 		);
 
-        if (isset($options['conditions']) &&strlen($options['conditions'][0])>1)
-            Utils::add_condition($options['conditions'], $conditions);
-        else
-            $options['conditions'] = $conditions;
+		if (isset($options['conditions']) &&strlen($options['conditions'][0])>1)
+			Utils::add_condition($options['conditions'], $conditions);
+		else
+			$options['conditions'] = $conditions;
 
 		if (!empty($includes))
 			$options['include'] = $includes;
-        
-        $options = $this->unset_non_finder_options($options);
+		
+		$options = $this->unset_non_finder_options($options);
 
 		$class = $this->class_name;
 
@@ -246,7 +246,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 
 	protected function set_class_name($class_name)
 	{
-        $class_name = add_namespace($class_name);
+		$class_name = add_namespace($class_name);
 		$reflection = Reflections::instance()->add($class_name)->get($class_name);
 
 		if (!$reflection->isSubClassOf('ActiveRecord\\Model'))
@@ -290,7 +290,7 @@ abstract class AbstractRelationship implements InterfaceRelationship
 			$join_table = $from_table;
 			$join_table_name = $from_table->get_fully_qualified_table_name();
 			$from_table_name = Table::load($this->class_name)->get_fully_qualified_table_name();
- 		}
+		}
 		else
 		{
 			$join_table = Table::load($this->class_name);

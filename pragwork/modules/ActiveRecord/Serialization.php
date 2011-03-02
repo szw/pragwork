@@ -12,7 +12,7 @@ namespace ActiveRecord;
  * along with the method's returned value</li>
  * <li><b>include:</b> a string or array of associated models to include in the final serialized product.</li>
  * <li><b>only_method:</b> a method that's called and only the resulting array is serialized
- * <li><b>skip_instruct:</b> set to true to skip the <?xml ...?> declaration.</li>
+ * <li><b>skip_instruct:</b> set to true to skip the <code><?xml ...?></code> declaration.</li>
  * </ul>
  *
  * Example usage:
@@ -23,9 +23,9 @@ namespace ActiveRecord;
  * # include the comments association
  * # include posts association with its own options (nested)
  * $model->to_json(array(
- *   'only' => array('id','name', 'encoded_description'),
- *   'methods' => array('encoded_description'),
- *   'include' => array('comments', 'posts' => array('only' => 'id'))
+ *	 'only' => array('id','name', 'encoded_description'),
+ *	 'methods' => array('encoded_description'),
+ *	 'include' => array('comments', 'posts' => array('only' => 'id'))
  * ));
  *
  * # except the password field from being included
@@ -40,13 +40,13 @@ abstract class Serialization
 	protected $model;
 	protected $options;
 	protected $attributes;
-    
-    /**
-     * The default format to serialize DateTime objects to.
-     *
-     * @see DateTime
-     */
-    public static $DATETIME_FORMAT = 'iso8601';
+	
+	/**
+	 * The default format to serialize DateTime objects to.
+	 *
+	 * @see DateTime
+	 */
+	public static $DATETIME_FORMAT = 'iso8601';
 	
 	/**
 	 * Set this to true if the serializer needs to create a nested array keyed
@@ -57,12 +57,12 @@ abstract class Serialization
 	 *
 	 * <code>
 	 * $user = array('id' => 1, 'name' => 'Tito',
-	 *   'permissions' => array(
-	 *     'permission' => array(
-	 *       array('id' => 100, 'name' => 'admin'),
-	 *       array('id' => 101, 'name' => 'normal')
-	 *     )
-	 *   )
+	 *	 'permissions' => array(
+	 *	   'permission' => array(
+	 *		 array('id' => 100, 'name' => 'admin'),
+	 *		 array('id' => 101, 'name' => 'normal')
+	 *	   )
+	 *	 )
 	 * );
 	 * </code>
 	 *
@@ -70,10 +70,10 @@ abstract class Serialization
 	 *
 	 * <code>
 	 * $user = array('id' => 1, 'name' => 'Tito',
-	 *   'permissions' => array(
-	 *     array('id' => 100, 'name' => 'admin'),
-	 *     array('id' => 101, 'name' => 'normal')
-	 *   )
+	 *	 'permissions' => array(
+	 *	   array('id' => 100, 'name' => 'admin'),
+	 *	   array('id' => 101, 'name' => 'normal')
+	 *	 )
 	 * );
 	 * </code>
 	 *
@@ -118,7 +118,7 @@ abstract class Serialization
 
 	private function check_except()
 	{
-	    if (isset($this->options['except']) && !isset($this->options['only']))
+		if (isset($this->options['except']) && !isset($this->options['only']))
 		{
 			$this->options_to_a('except');
 			$this->attributes = array_diff_key($this->attributes,array_flip($this->options['except']));
@@ -140,14 +140,14 @@ abstract class Serialization
 	}
 	
 	private function check_only_method()
-    {
-        if (isset($this->options['only_method']))
-        {
-            $method = $this->options['only_method'];
-            if (method_exists($this->model, $method))
-                $this->attributes = $this->model->$method();
-        }
-    }
+	{
+		if (isset($this->options['only_method']))
+		{
+			$method = $this->options['only_method'];
+			if (method_exists($this->model, $method))
+				$this->attributes = $this->model->$method();
+		}
+	}
 
 	private function check_include()
 	{
@@ -204,18 +204,18 @@ abstract class Serialization
 	}
 
 	/**
-     * Returns the attributes array.
-     * @return array
-     */
-    final public function to_a()
-    {
-        foreach ($this->attributes as &$value)
-        {
-            if ($value instanceof \DateTime)
-                $value = $value->format(self::$DATETIME_FORMAT);
-        }
-        return $this->attributes;
-    }
+	 * Returns the attributes array.
+	 * @return array
+	 */
+	final public function to_a()
+	{
+		foreach ($this->attributes as &$value)
+		{
+			if ($value instanceof \DateTime)
+				$value = $value->format(self::$DATETIME_FORMAT);
+		}
+		return $this->attributes;
+	}
 
 	/**
 	 * Returns the serialized object as a string.

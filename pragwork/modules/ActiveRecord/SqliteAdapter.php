@@ -16,11 +16,11 @@ class SqliteAdapter extends Connection
 	}
 
 	public function limit($sql, $offset, $limit)
-    {
-        $offset = is_null($offset) ? '' : intval($offset) . ',';
-        $limit = intval($limit);
-        return "$sql LIMIT {$offset}$limit";
-    }
+	{
+		$offset = is_null($offset) ? '' : intval($offset) . ',';
+		$limit = intval($limit);
+		return "$sql LIMIT {$offset}$limit";
+	}
 
 	public function query_column_info($table)
 	{
@@ -73,15 +73,33 @@ class SqliteAdapter extends Connection
 	}
 	
 	public function set_encoding($charset)
-    {
-        throw new ActiveRecordException(
-            "SqliteAdapter::set_charset not supported."
-        );
-    }
-    
-    public function accepts_limit_and_order_for_update_and_delete() 
-    { 
-        return true; 
-    }
+	{
+		throw new ActiveRecordException(
+			"SqliteAdapter::set_charset not supported."
+		);
+	}
+	
+	public function accepts_limit_and_order_for_update_and_delete() 
+	{ 
+		return true; 
+	}
+
+	public function native_database_types()
+	{
+		return array(
+			'primary_key' => 'INTEGER NOT NULL PRIMARY KEY',
+			'string' => array('name' => 'varchar', 'length' => 255),
+			'text' => array('name' => 'text'),
+			'integer' => array('name' => 'integer'),
+			'float' => array('name' => 'float'),
+			'decimal' => array('name' => 'decimal'),
+			'datetime' => array('name' => 'datetime'),
+			'timestamp' => array('name' => 'datetime'),
+			'time' => array('name' => 'time'),
+			'date' => array('name' => 'date'),
+			'binary' => array('name' => 'blob'),
+			'boolean' => array('name' => 'boolean')
+		);
+	}
 }
 ?>

@@ -32,16 +32,23 @@ abstract class Connection
 	 * @var object
 	 */
 	private $logger;
+	
+	/**
+	 * The name of the protocol that is used.
+	 * @var string
+	 */
+	public $protocol;
 
 	/**
 	 * Default \PDO options to set for each connection.
 	 * @var array
 	 */
 	static $PDO_OPTIONS = array(
-		\PDO::ATTR_CASE				=> \PDO::CASE_LOWER,
-		\PDO::ATTR_ERRMODE			=> \PDO::ERRMODE_EXCEPTION,
-		\PDO::ATTR_ORACLE_NULLS		=> \PDO::NULL_NATURAL,
-		\PDO::ATTR_STRINGIFY_FETCHES	=> false);
+		\PDO::ATTR_CASE => \PDO::CASE_LOWER,
+		\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+		\PDO::ATTR_ORACLE_NULLS => \PDO::NULL_NATURAL,
+		\PDO::ATTR_STRINGIFY_FETCHES => false
+	);
 
 	/**
 	 * The quote character for stuff like column and field names.
@@ -59,22 +66,22 @@ abstract class Connection
 	 * Retrieve a database connection.
 	 *
 	 * @param string $connection_string_or_connection_name A database connection string (ex. mysql://user:pass@host[:port]/dbname)
-	 *   Everything after the protocol:// part is specific to the connection adapter.
-	 *   OR
-	 *   A connection name that is set in ActiveRecord\Config
-	 *   If null it will use the default connection specified by ActiveRecord\Config->set_default_connection
+	 *	 Everything after the protocol:// part is specific to the connection adapter.
+	 *	 OR
+	 *	 A connection name that is set in ActiveRecord\Configuration
+	 *	 If null it will use the default connection specified by ActiveRecord\Configuration::$default_connection
 	 * @return Connection
 	 * @see parse_connection_url
 	 */
 	public static function instance($connection_string_or_connection_name=null)
 	{
-		$config = Config::instance();
+		$config = Configuration::instance();
 
-		if (strpos($connection_string_or_connection_name,'://') === false)
+		if (strpos($connection_string_or_connection_name, '://') === false)
 		{
-			$connection_string = $connection_string_or_connection_name ?
-				$config->get_connection($connection_string_or_connection_name) :
-				$config->get_default_connection_string();
+			$connection_string = $connection_string_or_connection_name 
+				? $config->connection_for($connection_string_or_connection_name) 
+				: $config->connection;
 		}
 		else
 			$connection_string = $connection_string_or_connection_name;
@@ -88,10 +95,10 @@ abstract class Connection
 		try {
 			$connection = new $fqclass($info);
 			$connection->protocol = $info->protocol;
-			$connection->logging = $config->get_logging();
-			$connection->logger = $connection->logging ? $config->get_logger() : null;
+			$connection->logging = $config->logging;
+			$connection->logger = $connection->logging ? $config->logger : null;
 			if (isset($info->charset))
-                $connection->set_encoding($info->charset);
+				$connection->set_encoding($info->charset);
 		} catch (\PDOException $e) {
 			throw new DatabaseException($e);
 		}
@@ -105,101 +112,101 @@ abstract class Connection
 	 * @return string The full name of the class including namespace.
 	 */
 	private static function load_adapter_class($adapter)
- 	{
- 		$class = ucwords($adapter) . 'Adapter';
- 		$fqclass = 'ActiveRecord\\' . $class;
- 		return $fqclass;
- 	}
+	{
+		$class = ucwords($adapter) . 'Adapter';
+		$fqclass = 'ActiveRecord\\' . $class;
+		return $fqclass;
+	}
 
-    /**
-     * Use this for any adapters that can take connection info in the form below
-     * to set the adapters connection info.
-     *
-     * <code>
-     * protocol://username:password@host[:port]/dbname
-     * protocol://urlencoded%20username:urlencoded%20password@host[:port]/dbname?decode=true
-     * protocol://username:password@unix(/some/file/path)/dbname
-     * </code>
-     *
-     * Sqlite has a special syntax, as it does not need a database name 
-     * or user authentication:
-     *
-     * <code>
- 	 * sqlite://file.db
-     * sqlite://../relative/path/to/file.db
-     * sqlite://unix(/absolute/path/to/file.db)
-     * sqlite://windows(c:/absolute/path/to/file.db)
-     * </code>
-  	 *
-     * @param string $connection_url A connection URL
-     * @return object the parsed URL as an object.
-     */
-    public static function parse_connection_url($connection_url)
-    {
-        $url = @parse_url($connection_url);
+	/**
+	 * Use this for any adapters that can take connection info in the form below
+	 * to set the adapters connection info.
+	 *
+	 * <code>
+	 * protocol://username:password@host[:port]/dbname
+	 * protocol://urlencoded%20username:urlencoded%20password@host[:port]/dbname?decode=true
+	 * protocol://username:password@unix(/some/file/path)/dbname
+	 * </code>
+	 *
+	 * Sqlite has a special syntax, as it does not need a database name 
+	 * or user authentication:
+	 *
+	 * <code>
+	 * sqlite://file.db
+	 * sqlite://../relative/path/to/file.db
+	 * sqlite://unix(/absolute/path/to/file.db)
+	 * sqlite://windows(c:/absolute/path/to/file.db)
+	 * </code>
+	 *
+	 * @param string $connection_url A connection URL
+	 * @return object the parsed URL as an object.
+	 */
+	public static function parse_connection_url($connection_url)
+	{
+		$url = @parse_url($connection_url);
 
-        if (!isset($url['host']))
-            throw new DatabaseException(
-                'Database host must be specified in the connection string.If you want to specify absolute filenames, use e.g. sqlite://unix(/path/to/file).'
-            );
+		if (!isset($url['host']))
+			throw new DatabaseException(
+				'Database host must be specified in the connection string.If you want to specify absolute filenames, use e.g. sqlite://unix(/path/to/file).'
+			);
 
-        $info = new \stdClass();
-        $info->protocol = $url['scheme'];
-        $info->host = $url['host'];
-        $info->db = isset($url['path']) ? substr($url['path'],1) : null;
-        $info->user = isset($url['user']) ? $url['user'] : null;
-        $info->pass = isset($url['pass']) ? $url['pass'] : null;
-        
-        $allow_blank_db = ($info->protocol == 'sqlite');
-        if ($info->host === 'unix(')
-        {
-            $socket_database = $info->host . '/' . $info->db;
-            
-            $unix_regex = $allow_blank_db
-                ? '/^unix\((.+)\)\/?().*$/'
-                : '/^unix\((.+)\)\/(.+)$/';
-            
-            if (preg_match_all($unix_regex, $socket_database, $matches) > 0)
-            {
-                $info->host = $matches[1][0];
-                $info->db = $matches[2][0];
-            }
-        }
-        elseif (substr($info->host,0,8) === 'windows(')
-        {
-            $info->host = urldecode(substr($info->host,8) . '/' 
-                . substr($info->db, 0, -1));
-            $info->db = null;
-        }
-        
-        if ($allow_blank_db && $info->db)
-            $info->host .= '/' . $info->db;
+		$info = new \stdClass();
+		$info->protocol = $url['scheme'];
+		$info->host = $url['host'];
+		$info->db = isset($url['path']) ? substr($url['path'],1) : null;
+		$info->user = isset($url['user']) ? $url['user'] : null;
+		$info->pass = isset($url['pass']) ? $url['pass'] : null;
+		
+		$allow_blank_db = ($info->protocol == 'sqlite');
+		if ($info->host === 'unix(')
+		{
+			$socket_database = $info->host . '/' . $info->db;
+			
+			$unix_regex = $allow_blank_db
+				? '/^unix\((.+)\)\/?().*$/'
+				: '/^unix\((.+)\)\/(.+)$/';
+			
+			if (preg_match_all($unix_regex, $socket_database, $matches) > 0)
+			{
+				$info->host = $matches[1][0];
+				$info->db = $matches[2][0];
+			}
+		}
+		elseif (substr($info->host,0,8) === 'windows(')
+		{
+			$info->host = urldecode(substr($info->host,8) . '/' 
+				. substr($info->db, 0, -1));
+			$info->db = null;
+		}
+		
+		if ($allow_blank_db && $info->db)
+			$info->host .= '/' . $info->db;
 
-        if (isset($url['port']))
-            $info->port = $url['port'];
+		if (isset($url['port']))
+			$info->port = $url['port'];
 
-        if (strpos($connection_url,'decode=true') !== false)
-        {
-            if ($info->user)
-            $info->user = urldecode($info->user);
+		if (strpos($connection_url,'decode=true') !== false)
+		{
+			if ($info->user)
+			$info->user = urldecode($info->user);
 
-            if ($info->pass)
-                $info->pass = urldecode($info->pass);
-        }
-        
-        if (isset($url['query']))
-        {
-            foreach (explode('/&/',$url['query']) as $pair)
-            {
-                list($name, $value) = explode('=', $pair);
+			if ($info->pass)
+				$info->pass = urldecode($info->pass);
+		}
+		
+		if (isset($url['query']))
+		{
+			foreach (explode('/&/', $url['query']) as $pair)
+			{
+				list($name, $value) = explode('=', $pair);
 
-                if ($name == 'charset')
-                    $info->charset = $value;
-            }
-        }
+				if ($name == 'charset')
+					$info->charset = $value;
+			}
+		}
 
-        return $info;
-    }
+		return $info;
+	}
 
 	/**
 	 * Class Connection is a singleton. Access it via instance().
@@ -377,7 +384,10 @@ abstract class Connection
 	 *
 	 * @return boolean
 	 */
-	function supports_sequences() { return false; }
+	function supports_sequences() 
+	{ 
+		return false; 
+	}
 
 	/**
 	 * Return a default sequence name for the specified table.
@@ -397,7 +407,10 @@ abstract class Connection
 	 * @param string $sequence_name Name of the sequence
 	 * @return string
 	 */
-	public function next_sequence_value($sequence_name) { return null; }
+	public function next_sequence_value($sequence_name) 
+	{ 
+		return null; 
+	}
 
 	/**
 	 * Quote a name like table names and field names.
@@ -412,15 +425,15 @@ abstract class Connection
 	}
 	
 	/**
-     * Return a date time formatted into the database's date format.
-     *
-     * @param DateTime $datetime The DateTime object
-     * @return string
-     */
-    public function date_to_string($datetime)
-    {
-        return $datetime->format('Y-m-d');
-    }
+	 * Return a date time formatted into the database's date format.
+	 *
+	 * @param DateTime $datetime The DateTime object
+	 * @return string
+	 */
+	public function date_to_string($datetime)
+	{
+		return $datetime->format('Y-m-d');
+	}
 
 	/**
 	 * Return a date time formatted into the database's datetime format.
@@ -477,19 +490,24 @@ abstract class Connection
 	abstract function query_for_tables();
 	
 	/**
-     * Executes query to specify the character set for this connection.
-     */
-    abstract function set_encoding($charset);
-    
-    /**
-     * Specifies whether or not adapter can use LIMIT/ORDER clauses with DELETE & UPDATE operations
-     *
-     * @internal
-     * @returns boolean (FALSE by default)
-     */
-    public function accepts_limit_and_order_for_update_and_delete() 
-    { 
-        return false; 
-    }
+	 * Executes query to specify the character set for this connection.
+	 */
+	abstract function set_encoding($charset);
+	
+	/*
+	 * Returns an array mapping of native database types
+	 */
+	abstract public function native_database_types();
+	
+	/**
+	 * Specifies whether or not adapter can use LIMIT/ORDER clauses with DELETE & UPDATE operations
+	 *
+	 * @internal
+	 * @returns boolean (FALSE by default)
+	 */
+	public function accepts_limit_and_order_for_update_and_delete() 
+	{ 
+		return false; 
+	}
 }
 ?>

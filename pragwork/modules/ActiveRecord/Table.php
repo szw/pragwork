@@ -50,7 +50,7 @@ class Table
 
 	public static function load($model_class_name)
 	{
-	    $model_class_name = add_namespace($model_class_name);
+		$model_class_name = add_namespace($model_class_name);
 		if (!isset(self::$cache[$model_class_name]))
 		{
 			/* do not place set_assoc in constructor..it will lead to infinite loop due to
@@ -71,49 +71,48 @@ class Table
 	}
 
 	public function __construct($class_name)
-    {
-        $this->class =
-            Reflections::instance()->add($class_name)->get($class_name);
+	{
+		$this->class =
+			Reflections::instance()->add($class_name)->get($class_name);
 
-        $this->reestablish_connection(false);
-        $this->set_table_name();
-        $this->get_meta_data();
-        $this->set_primary_key();
-        $this->set_sequence_name();
-        $this->set_delegates();
+		$this->reestablish_connection(false);
+		$this->set_table_name();
+		$this->get_meta_data();
+		$this->set_primary_key();
+		$this->set_sequence_name();
+		$this->set_delegates();
 
-        $this->callback = new CallBack($class_name);
-        $this->callback->register(
-            'before_save', 
-            function(Model $model) {   
-                $model->set_timestamps(); 
-            }, 
-            array('prepend' => true)
-        );
-        $this->callback->register(
-            'after_save', 
-            function(Model $model) { 
-                $model->reset_dirty(); 
-            }, 
-            array('prepend' => true)
-        );
-    }
-    
-    public function reestablish_connection($close=true)
-    {
-        // if connection name property is null the connection manager 
-        // will use the default connection
-        $connection = $this->class->getStaticPropertyValue('connection',null);
+		$this->callback = new CallBack($class_name);
+		$this->callback->register(
+			'before_save', 
+			function(Model $model) {   
+				$model->set_timestamps(); 
+			}, 
+			array('prepend' => true)
+		);
+		$this->callback->register(
+			'after_save', 
+			function(Model $model) { 
+				$model->reset_dirty(); 
+			}, 
+			array('prepend' => true)
+		);
+	}
+	
+	public function reestablish_connection($close=true)
+	{
+		// if connection name property is null the connection manager 
+		// will use the default connection
+		$connection = $this->class->getStaticPropertyValue('connection',null);
 
-        if ($close)
-        {
-            ConnectionManager::drop_connection($connection);
-            static::clear_cache();
-        }
+		if ($close)
+		{
+			ConnectionManager::drop_connection($connection);
+			static::clear_cache();
+		}
 
-            return ($this->conn =
-                ConnectionManager::get_connection($connection));
-    }
+		return ($this->conn = ConnectionManager::get_connection($connection));
+	}
 
 	public function create_joins($joins)
 	{
@@ -242,8 +241,8 @@ class Table
 			$list[] = $model;
 		}
 
-	    if ($collect_attrs_for_includes && !empty($list))
-            $this->execute_eager_load($list, $attrs, $includes);
+		if ($collect_attrs_for_includes && !empty($list))
+			$this->execute_eager_load($list, $attrs, $includes);
 
 		return $list;
 	}
@@ -251,7 +250,7 @@ class Table
 	/**
 	 * Executes an eager load of a given named relationship for this table.
 	 *
-	 * @param $models array found modesl for this table
+	 * @param $models array found models for this table
 	 * @param $attrs array of attrs from $models
 	 * @param $includes array eager load directives
 	 * @return void
@@ -378,12 +377,12 @@ class Table
 		$quote_name = !($this->conn instanceof PgsqlAdapter);
 
 		$table_name = $this->get_fully_qualified_table_name($quote_name);
-        $conn = $this->conn;
-        $this->columns = Cache::get("get_meta_data-$table_name", 
-            function() use ($conn, $table_name) { 
-                return $conn->columns($table_name); 
-            }
-        );
+		$conn = $this->conn;
+		$this->columns = Cache::get("get_meta_data-$table_name", 
+			function() use ($conn, $table_name) { 
+				return $conn->columns($table_name); 
+			}
+		);
 	}
 
 	/**
@@ -412,15 +411,15 @@ class Table
 		foreach ($hash as $name => &$value)
 		{
 			if ($value instanceof \DateTime)
-            {
-                if (isset($this->columns[$name]) 
-                    && $this->columns[$name]->type == Column::DATE)
-                    $hash[$name] = $this->conn->date_to_string($value);
-                else
-                    $hash[$name] = $this->conn->datetime_to_string($value);
-            }
-            else
-                $hash[$name] = $value;
+			{
+				if (isset($this->columns[$name]) 
+					&& $this->columns[$name]->type == Column::DATE)
+					$hash[$name] = $this->conn->date_to_string($value);
+				else
+					$hash[$name] = $this->conn->datetime_to_string($value);
+			}
+			else
+				$hash[$name] = $value;
 		}
 		return $hash;
 	}
@@ -474,11 +473,11 @@ class Table
 		{
 			if (!$definitions || !is_array($definitions))
 				continue;
-            
+			
 			foreach ($definitions as $definition)
 			{
 				$relationship = null;
-                
+				
 				switch ($name)
 				{
 					case 'has_many':
@@ -509,23 +508,23 @@ class Table
 	 * Will end up consisting of array of:
 	 *
 	 * array('delegate' => array('field1','field2',...),
-	 *       'to'       => 'delegate_to_relationship',
-	 *       'prefix'	=> 'prefix')
+	 *		 'to'		=> 'delegate_to_relationship',
+	 *		 'prefix'	=> 'prefix')
 	 */
 	private function set_delegates()
 	{
 		$delegates = $this->class->getStaticPropertyValue('delegate', array());
 		$new = array();
-        
+		
 		if (!array_key_exists('processed', $delegates))
 		{
-		    // normalize
-		    if (!empty($delegates))
-		        $delegates = array($delegates);
-		        
+			// normalize
+			if (!empty($delegates))
+				$delegates = array($delegates);
+				
 			$delegates['processed'] = false;
-        }
-        
+		}
+		
 		if (!$delegates['processed'])
 		{
 			foreach ($delegates as &$delegate)

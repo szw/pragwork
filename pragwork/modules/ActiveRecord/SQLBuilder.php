@@ -153,18 +153,18 @@ class SQLBuilder
 	}
 
 	public function update($mixed)
-    {
-        $this->operation = 'UPDATE';
+	{
+		$this->operation = 'UPDATE';
 
-        if (is_hash($mixed))
-            $this->data = $mixed;
-        elseif (is_string($mixed))
-            $this->update = $mixed;
-        else
-            throw new ActiveRecordException('Updating requires a hash or string.');
+		if (is_hash($mixed))
+			$this->data = $mixed;
+		elseif (is_string($mixed))
+			$this->update = $mixed;
+		else
+			throw new ActiveRecordException('Updating requires a hash or string.');
 
-        return $this;
-    }
+		return $this;
+	}
 
 	public function delete()
 	{
@@ -203,7 +203,7 @@ class SQLBuilder
 	 * @param Connection $connection
 	 * @param $name Underscored string
 	 * @param $values Array of values for the field names. This is used
-	 *   to determine what kind of bind marker to use: =?, IN(?), IS NULL
+	 *	 to determine what kind of bind marker to use: =?, IN(?), IS NULL
 	 * @param $map A hash of "mapped_column_name" => "real_column_name"
 	 * @return A conditions array in the form array(sql_string, value1, value2,...)
 	 */
@@ -265,25 +265,25 @@ class SQLBuilder
 	}
 	
 	/**
-     * prepends table name to hash of field names to get around ambiguous fields when SQL builder
-     * has joins
-     *
-     * @param array $hash
-     * @return array $new
-     */
-    private function prepend_table_name_to_fields($hash=array())
-    {
-        $new = array();
-        $table = $this->connection->quote_name($this->table);
+	 * prepends table name to hash of field names to get around ambiguous fields when SQL builder
+	 * has joins
+	 *
+	 * @param array $hash
+	 * @return array $new
+	 */
+	private function prepend_table_name_to_fields($hash=array())
+	{
+		$new = array();
+		$table = $this->connection->quote_name($this->table);
 
-        foreach ($hash as $key => $value)
-        {
-            $k = $this->connection->quote_name($key);
-            $new[$table.'.'.$k] = $value;
-        }
+		foreach ($hash as $key => $value)
+		{
+			$k = $this->connection->quote_name($key);
+			$new[$table.'.'.$k] = $value;
+		}
 
-        return $new;
-    }
+		return $new;
+	}
 	
 	private function apply_where_conditions($args)
 	{
@@ -292,8 +292,8 @@ class SQLBuilder
 		if ($num_args == 1 && is_hash($args[0]))
 		{
 			$hash = is_null($this->joins) 
-			    ? $args[0] : $this->prepend_table_name_to_fields($args[0]);
-            $e = new Expressions($this->connection,$hash);
+				? $args[0] : $this->prepend_table_name_to_fields($args[0]);
+			$e = new Expressions($this->connection,$hash);
 			$this->where = $e->to_s();
 			$this->where_values = array_flatten($e->values());
 		}
@@ -321,23 +321,23 @@ class SQLBuilder
 	}
 
 	private function build_delete()
-    {
-        $sql = "DELETE FROM $this->table";
+	{
+		$sql = "DELETE FROM $this->table";
 
-        if ($this->where)
-            $sql .= " WHERE $this->where";
+		if ($this->where)
+			$sql .= " WHERE $this->where";
 
-        if ($this->connection->accepts_limit_and_order_for_update_and_delete())
-        {
-            if ($this->order)
-                $sql .= " ORDER BY $this->order";
+		if ($this->connection->accepts_limit_and_order_for_update_and_delete())
+		{
+			if ($this->order)
+				$sql .= " ORDER BY $this->order";
 
-            if ($this->limit)
-                $sql = $this->connection->limit($sql,null,$this->limit);
-        }
+			if ($this->limit)
+				$sql = $this->connection->limit($sql,null,$this->limit);
+		}
 
-        return $sql;
-    }
+		return $sql;
+	}
 
 	private function build_insert()
 	{
@@ -385,28 +385,28 @@ class SQLBuilder
 	}
 
 	private function build_update()
-    {
-        if (strlen($this->update) > 0)
-            $set = $this->update;
-        else
-            $set = join('=?, ', $this->quoted_key_names()) . '=?';
+	{
+		if (strlen($this->update) > 0)
+			$set = $this->update;
+		else
+			$set = join('=?, ', $this->quoted_key_names()) . '=?';
 
-        $sql = "UPDATE $this->table SET $set";
+		$sql = "UPDATE $this->table SET $set";
 
-        if ($this->where)
-            $sql .= " WHERE $this->where";
+		if ($this->where)
+			$sql .= " WHERE $this->where";
 
-        if ($this->connection->accepts_limit_and_order_for_update_and_delete())
-        {
-            if ($this->order)
-                $sql .= " ORDER BY $this->order";
+		if ($this->connection->accepts_limit_and_order_for_update_and_delete())
+		{
+			if ($this->order)
+				$sql .= " ORDER BY $this->order";
 
-            if ($this->limit)
-                $sql = $this->connection->limit($sql,null,$this->limit);
-        }
+			if ($this->limit)
+				$sql = $this->connection->limit($sql,null,$this->limit);
+		}
 
-        return $sql;
-    }
+		return $sql;
+	}
 
 	private function quoted_key_names()
 	{

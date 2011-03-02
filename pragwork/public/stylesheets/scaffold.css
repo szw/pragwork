@@ -1,60 +1,59 @@
 body {
-    width: 920px;
-    font-size: 100%;
-    line-height: 130%;
-    margin: 0 auto;
-    font-family: Helvetica, Arial, sans-serif;
-    color: #1a1a1a;
-    padding-bottom: 50px;
+	width: 920px;
+	font-size: 100%;
+	line-height: 130%;
+	margin: 0 auto;
+	font-family: Helvetica, Arial, sans-serif;
+	color: #1a1a1a;
+	padding-bottom: 50px;
 }
 
-article, aside, canvas, details, figcaption, figure, footer, header, 
-hgroup, menu, nav, section, summary {
-    display: block;
+article, aside, canvas, details, figcaption, figure, footer, header, hgroup, menu, nav, section, summary {
+	display: block;
 }
 
 h1 {
-    font-size: 2em;
-    font-weight: bold;
-    line-height: 1.5em;
+	font-size: 2em;
+	font-weight: bold;
+	line-height: 1.5em;
 }
 
 h2 {
-    font-size: 1.2em;
-    font-weight: bold;
-    line-height: 1.2em;
+	font-size: 1.2em;
+	font-weight: bold;
+	line-height: 1.2em;
 }
 
 img {
-    border: none;
+	border: none;
 }
 
 small {
-    font-size: 0.8em;
+	font-size: 0.8em;
 }
 
 /* LINKS */
 
 a:link {
-    color: #2060a1;
-    text-decoration: underline;
+	color: #2060a1;
+	text-decoration: underline;
 }
 
 a:visited {
-    color: #2060a1;
-    text-decoration: none;
+	color: #2060a1;
+	text-decoration: none;
 }
 
 a:hover {
-    color: #d40000;
-    text-decoration: none;
+	color: #d40000;
+	text-decoration: none;
 }
 
 /* TABLES */
 
 table {
-    border: 1px solid #1a1a1a;
-    border-collapse: collapse;
+	border: 1px solid #1a1a1a;
+	border-collapse: collapse;
 }
 
 td, th {
@@ -65,77 +64,77 @@ td, th {
 }
 
 th {
-    color: white;
-    font-weight: bold;
-    background-color: #2060a1;
-    text-align: left;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-top: 10px;
+	color: white;
+	font-weight: bold;
+	background-color: #2060a1;
+	text-align: left;
+	padding-left: 20px;
+	padding-right: 20px;
+	padding-top: 10px;
 }
 
 .numeric {
-    text-align: right;
+	text-align: right;
 }
 
 .bool {
-    text-align: center;
+	text-align: center;
 }
 
 /* FORMS */
 
 label {
-    font-weight: bold;
-    vertical-align: text-top;
+	font-weight: bold;
+	vertical-align: text-top;
 }
 
 form div {
-    margin-top: 20px;
-    margin-bottom: 30px;
+	margin-top: 20px;
+	margin-bottom: 30px;
 }
 
 div.field input {
-    font-size: 0.9em;
-    border: 1px solid #cecece;
-    padding: 2px;
+	font-size: 0.9em;
+	border: 1px solid #cecece;
+	padding: 2px;
 }
 
 div.field textarea {
-    padding: 2px;
-    border: 1px solid #cecece;
-    font-size: 1em;
+	padding: 2px;
+	border: 1px solid #cecece;
+	font-size: 1em;
 }
 
 div.actions input {
-    font-size: 1em;
+	font-size: 1em;
 }
 
 form p.error {
-    margin-top: 0;
-    margin-bottom: 0;
-    font-size: 0.8em;
-    line-height: 1.5em;
-    font-weight: bold;
-    color: #d40000;
+	margin-top: 0;
+	margin-bottom: 0;
+	font-size: 0.8em;
+	line-height: 1.5em;
+	font-weight: bold;
+	color: #d40000;
 }
 
 /* MISC */
 
 .notice {
-    margin-top: 20px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    background-color: #2060a1;
-    text-align: center;
-    color: white;
-    font-size: 1em;
-    font-weight: bold;
+	margin-top: 20px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	background-color: #2060a1;
+	text-align: center;
+	color: white;
+	font-size: 1em;
+	font-weight: bold;
 }
 
 .button-to {
-    display: inline;
+	display: inline;
 }
 
 .button-to input {
-    font-size: 0.8em;
+	font-size: 0.8em;
 }

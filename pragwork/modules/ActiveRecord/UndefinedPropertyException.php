@@ -25,4 +25,3 @@ class UndefinedPropertyException extends ModelException
 		parent::__construct();
 	}
 };
-?>

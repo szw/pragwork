@@ -1,11 +1,8 @@
-RewriteEngine on
+DirectorySlash Off
 
-RewriteCond %{REQUEST_URI} \..+$
-RewriteCond %{REQUEST_URI} !\.html$
-RewriteRule .* - [L]
+RewriteEngine On
 
 RewriteRule ^$ index.html [QSA]
-RewriteRule ^([^.]+)/$ $1.html [QSA]
 RewriteRule ^([^.]+)$ $1.html [QSA]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.*)$ index.php [QSA,L]

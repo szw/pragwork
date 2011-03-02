@@ -23,14 +23,14 @@ class Column
 	 */
 	static $TYPE_MAPPING = array(
 		'datetime'	=> self::DATETIME,
-		'timestamp'	=> self::DATETIME,
+		'timestamp' => self::DATETIME,
 		'date'		=> self::DATE,
 		'time'		=> self::TIME,
 
 		'int'		=> self::INTEGER,
 		'tinyint'	=> self::INTEGER,
 		'smallint'	=> self::INTEGER,
-		'mediumint'	=> self::INTEGER,
+		'mediumint' => self::INTEGER,
 		'bigint'	=> self::INTEGER,
 
 		'float'		=> self::DECIMAL,
@@ -114,8 +114,8 @@ class Column
 		switch ($this->type)
 		{
 			case self::STRING:	return (string)$value;
-			case self::INTEGER:	return (int)$value;
-			case self::DECIMAL:	return (double)$value;
+			case self::INTEGER: return (int)$value;
+			case self::DECIMAL: return (double)$value;
 			case self::DATETIME:
 			case self::DATE:
 				if (!$value)
@@ -125,7 +125,7 @@ class Column
 					return $value;
 					
 				if ($value instanceof \DateTime)
-                    return new DateTime($value->format('Y-m-d H:i:s T'));
+					return new DateTime($value->format('Y-m-d H:i:s T'));
 
 				return $connection->string_to_datetime($value);
 		}
