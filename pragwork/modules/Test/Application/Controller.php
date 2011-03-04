@@ -102,6 +102,8 @@ abstract class Controller extends Singleton
 
 		try
 		{
+			ob_start();
+			
 			$this->invoke_filters('before_filter');
 			
 			if (self::$_cache)
@@ -111,9 +113,7 @@ abstract class Controller extends Singleton
 				
 				if (static::$caches_page)
 					$this->set_page_cache($request->uri());
-			}	
-			
-			ob_start();
+			}
 			
 			$this->$action();
 
