@@ -1,0 +1,35 @@
+== GNU/LINUX INSTALLATION ==
+
+To install on Linux is very simple, just follow these 2 steps:
+- After you clone the repository, create a symbolic link to the prag script on the 
+  /usr/local/bin/ folder with the command:
+
+    ln -s /path/to/the/prag /usr/local/bin/
+
+  For test, typing prag in a terminal, the output should be this:
+
+	PRAG 1.1.0
+	The Console Tool for Pragwork 1.1.0
+	Copyright (c) 2009-2011 Szymon Wrozynski
+	Licensed under the MIT License
+
+	Type "php prag help" for more info.
+
+
+- For the command pragmatic function in any directory, just add this line:
+  
+     #/usr/bin/php5
+  
+  before the opening php tag (<?php) and voila!
+
+  For test, you can create a new project in any directory with the command:
+     prag work [new_project_name]
+
+IMPORTANT:
+
+Make sure of did install the php5-cli library on your system.
+
+I used these codes on Ubuntu Linux 11.04, but should works on any GNU/Linux distributions. Just knowing
+the correct path for the PHP binary. ;)
+
+
