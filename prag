@@ -1,3 +1,4 @@
+#!/usr/bin/php5
 <?php
 # Pragwork 1.1.0
 # Prag Console Tool 1.1.0
@@ -2098,6 +2099,13 @@ form p.error {
 }
 SC
 	);
+
+	if(function_exists('symlink')){
+		symlink('public' . DIRECTORY_SEPARATOR . 'index.html', $work . DIRECTORY_SEPARATOR . 'index.html');
+	}else{
+		copy('public' . DIRECTORY_SEPARATOR . 'index.html', $work . DIRECTORY_SEPARATOR . 'index.html');
+	}
+	
 }
 
 function make_errors($work)
