@@ -16,11 +16,11 @@ To install on Linux is very simple, just follow these 2 steps:
 	Type "php prag help" for more info.
 
 
-- For the command pragmatic function in any directory, just add this line:
+- For 'prag' command wroks on any directory, just add this line:
   
      #/usr/bin/php5
   
-  before the opening php tag (<?php) and voila!
+  on first line in 'prag' file and voila!
 
   For test, you can create a new project in any directory with the command:
      prag work [new_project_name]
