@@ -16,7 +16,7 @@ To install on Linux is very simple, just follow these 2 steps:
 	Type "php prag help" for more info.
 
 
-- For 'prag' command wroks on any directory, just add this line:
+- For 'prag' command works on any directory, just add this line:
   
      #/usr/bin/php5
   
